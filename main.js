@@ -3,6 +3,8 @@ import * as THREE from 'three';
 let scene, camera, renderer, clock;
 let floor, cube;
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
+let screenOrientation = 0; // 画面の向きを保存する変数
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -89,6 +91,8 @@ function init() {
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
+    window.addEventListener('orientationchange', onScreenOrientationChange);
+    onScreenOrientationChange(); // 初期値を設定
     
     // ジョイスティック
     const joystickContainer = document.getElementById('joystick-container');
@@ -128,6 +132,10 @@ function requestDeviceOrientation() {
 }
 
 // --- 各種イベントハンドラ ---
+
+function onScreenOrientationChange() {
+    screenOrientation = window.screen.orientation.angle || window.orientation || 0;
+}
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -245,14 +253,19 @@ function updatePlayer(deltaTime) {
         // 基準からの差分を計算
         const deltaAlpha = currentOrientation.alpha - deviceOrientationBase.alpha;
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
+        const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
         const euler = new THREE.Euler(
             THREE.MathUtils.degToRad(deltaBeta),
             THREE.MathUtils.degToRad(deltaAlpha),
-            0, // roll (gamma) は意図しない傾きになるため、ここでは無視します
+            -THREE.MathUtils.degToRad(deltaGamma), // Rollを追加し、一般的な右手系に合わせるために反転
             'YXZ'
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
+
+        // 画面の向きに合わせてジャイロの回転を補正
+        const screenCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, -THREE.MathUtils.degToRad(screenOrientation));
+        gyroQuaternion.premultiply(screenCorrection);
 
         // --- タッチによる回転計算 ---
         const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
@@ -267,8 +280,8 @@ function updatePlayer(deltaTime) {
         player.pitchObject.rotation.y = player.rotation.y;
     }
 
-    // 2. 移動方向の計算
-    const moveDirection = new THREE.Vector3(controls.joystick.x, 0, -controls.joystick.y).normalize();
+    // 2. 移動方向の計算 (前後を反転)
+    const moveDirection = new THREE.Vector3(controls.joystick.x, 0, controls.joystick.y).normalize();
 
     // 3. 移動ベクトルの計算
     if (moveDirection.length() > 0) {
@@ -295,3 +308,4 @@ function updatePlayer(deltaTime) {
 
 // --- 実行開始 ---
 init();
+
