@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.5'; // バージョン番号を更新
+const VERSION = 'v1.6'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -11,7 +11,6 @@ let gyroActive = false;
 let baseQuaternionInverse = new THREE.Quaternion(); 
 const currentDeviceQuaternion = new THREE.Quaternion(); 
 
-// ★★★ 変更点: 画面の向きを保存する変数を追加 ★★★
 let screenOrientation = 0;
 
 // プレイヤー（カメラ）の状態
@@ -76,7 +75,7 @@ function init() {
     setupDebugMonitor();
     setupOrientationWarning();
     setupEventListeners();
-    onScreenOrientationChange(); // ★★★ 変更点: 初期の画面向きを取得
+    onScreenOrientationChange();
     checkScreenOrientation();
     animate();
 }
@@ -119,7 +118,6 @@ function setupOrientationWarning() {
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    // ★★★ 変更点: orientationchangeイベントリスナーを画面向き取得専用に変更 ★★★
     window.addEventListener('orientationchange', onScreenOrientationChange); 
     
     const joystickContainer = document.getElementById('joystick-container');
@@ -164,10 +162,10 @@ function onDeviceOrientation(event) {
     updateDeviceQuaternion(event);
 }
 
-// ★★★ 変更点: 画面の向きを取得する関数 ★★★
 function onScreenOrientationChange() {
     screenOrientation = window.screen.orientation.angle || window.orientation || 0;
-    checkScreenOrientation(); // 縦横チェックもここで行う
+    // 画面回転後は値の反映に少しラグがある場合があるため、僅かに遅延させる
+    setTimeout(checkScreenOrientation, 100);
 }
 
 const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
@@ -180,7 +178,6 @@ function updateDeviceQuaternion(event) {
     const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
     currentDeviceQuaternion.setFromEuler(euler);
 
-    // ★★★ 変更点: 動的に取得した画面の向きで補正 ★★★
     const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
     currentDeviceQuaternion.multiply(screenTransform);
     
@@ -195,10 +192,10 @@ function updateDeviceQuaternion(event) {
     `;
 }
 
+// ★★★ 変更点: 画面の向きの判定ロジックを修正 ★★★
 function checkScreenOrientation() {
-    // window.innerWidth/Height は orientationchange イベント内では古いことがあるため、screen を見る
-    const isPortrait = screen.availHeight > screen.availWidth;
-    if (isPortrait) {
+    // ブラウザの表示領域の高さが幅より大きい場合、縦向きと判断
+    if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
     } else {
         orientationWarning.style.display = 'none';
