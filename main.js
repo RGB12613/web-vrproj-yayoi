@@ -1,13 +1,21 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = 'v4.3 - Touch Restore'; // バージョン番号を更新
+const VERSION = '4.5 - UI Additions'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
 let versionDisplay;
 let orientationWarning;
 let controls;
+
+const ui = {
+    settingsButton: null,
+    modalOverlay: null,
+    closeModalButton: null,
+    upButton: null,
+    downButton: null,
+};
 
 const player = {
     speed: 5.0,
@@ -21,12 +29,12 @@ const input = {
         x: 0,
         y: 0,
     },
-    // ★★★ 変更点: タッチ操作の状態を保持するオブジェクトを追加 ★★★
     touch: {
         active: false,
         startX: 0,
         startY: 0,
-    }
+    },
+    verticalMove: 0, // 1: up, -1: down, 0: stop
 };
 
 // --- 初期化処理 ---
@@ -66,9 +74,15 @@ function init() {
 
     controls = new DeviceOrientationControls(camera);
     
+    // UI要素の取得
     versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
-    
+    ui.settingsButton = document.getElementById('settings-button');
+    ui.modalOverlay = document.getElementById('settings-modal-overlay');
+    ui.closeModalButton = document.getElementById('close-modal-button');
+    ui.upButton = document.getElementById('up-button');
+    ui.downButton = document.getElementById('down-button');
+
     updateVersionDisplay();
     setupEventListeners();
     checkScreenOrientation(); // 初回実行
@@ -90,7 +104,6 @@ function setupEventListeners() {
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
 
-    // ★★★ 変更点: タッチによる視点操作のイベントリスナーを再実装 ★★★
     window.addEventListener('touchstart', onTouchStart, { passive: false });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
@@ -99,6 +112,29 @@ function setupEventListeners() {
         controls.connect();
         document.getElementById('gyro-button').style.display = 'none';
     });
+    
+    // 設定モーダル
+    ui.settingsButton.addEventListener('click', () => ui.modalOverlay.classList.remove('hidden'));
+    ui.closeModalButton.addEventListener('click', () => ui.modalOverlay.classList.add('hidden'));
+    ui.modalOverlay.addEventListener('click', (e) => {
+        if (e.target === ui.modalOverlay) {
+            ui.modalOverlay.classList.add('hidden');
+        }
+    });
+
+    // 上下移動ボタン
+    ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
+    ui.downButton.addEventListener('touchstart', () => { input.verticalMove = -1; });
+    ui.upButton.addEventListener('touchend', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('touchend', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+    // マウスイベントも追加（PCでのデバッグ用）
+    ui.upButton.addEventListener('mousedown', () => { input.verticalMove = 1; });
+    ui.downButton.addEventListener('mousedown', () => { input.verticalMove = -1; });
+    ui.upButton.addEventListener('mouseup', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('mouseup', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+    ui.upButton.addEventListener('mouseleave', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('mouseleave', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+
 }
 
 // --- 各種イベントハンドラ ---
@@ -146,9 +182,9 @@ function onJoystickEnd() {
     input.joystick.y = 0;
 }
 
-// ★★★ 変更点: タッチによる視点操作のハンドラを再実装 ★★★
+// タッチによる視点操作のハンドラ
 function onTouchStart(event) {
-    if (event.target.closest('#joystick-container')) return;
+    if (event.target.closest('#joystick-container') || event.target.closest('#vertical-controls')) return;
     
     const touch = event.touches[0];
     if (touch.clientX < window.innerWidth / 2) return;
@@ -165,12 +201,10 @@ function onTouchMove(event) {
     const deltaX = touch.clientX - input.touch.startX;
     const deltaY = touch.clientY - input.touch.startY;
 
-    // スワイプ量をDeviceOrientationControlsのtouchEulerに加算
-    controls.touchEuler.y -= deltaX * 0.002;
-    controls.touchEuler.x -= deltaY * 0.002;
+    controls.touchYaw -= deltaX * 0.002;
+    controls.touchPitch += deltaY * 0.002;
     
-    // 上下の回転範囲を制限 (±90度)
-    controls.touchEuler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchEuler.x));
+    controls.touchPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchPitch));
     
     input.touch.startX = touch.clientX;
     input.touch.startY = touch.clientY;
@@ -192,6 +226,7 @@ function animate() {
 
 // --- プレイヤーの移動更新 ---
 function updatePlayer(deltaTime) {
+    // 水平方向の移動
     const moveDirection = new THREE.Vector3(input.joystick.x, 0, input.joystick.y);
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
@@ -206,6 +241,10 @@ function updatePlayer(deltaTime) {
     }
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
     camera.position.add(player.velocity);
+    
+    // 上下方向の移動
+    const verticalVelocity = input.verticalMove * player.speed * deltaTime;
+    camera.position.y += verticalVelocity;
 }
 
 // --- 実行開始 ---

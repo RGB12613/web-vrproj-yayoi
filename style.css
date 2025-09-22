@@ -1,18 +1,32 @@
 body {
     margin: 0;
     overflow: hidden;
-    font-family: 'Inter', sans-serif;
-    background-color: #000;
+    font-family: sans-serif;
 }
 
 canvas {
     display: block;
 }
 
+/* --- UI Controls --- */
+#ui-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* UIコンテナ自体はクリックを透過させる */
+}
+
+/* UI要素はクリックできるようにする */
+#ui-container > * {
+    pointer-events: auto;
+}
+
 #joystick-container {
     position: fixed;
-    bottom: 30px;
-    left: 30px;
+    right: 50px; /* 右寄せに変更 */
+    bottom: 100px;
     width: 120px;
     height: 120px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -20,16 +34,45 @@ canvas {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 100;
 }
 
 #joystick-knob {
     width: 60px;
     height: 60px;
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     transition: transform 0.1s;
 }
+
+#vertical-controls {
+    position: fixed;
+    left: 50px; 
+    bottom: 100px; /* ジョイスティックと高さを合わせる */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vertical-button {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none; /* テキスト選択を防ぐ */
+}
+
+.vertical-button:active {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
 
 #gyro-button {
     position: fixed;
@@ -38,13 +81,7 @@ canvas {
     transform: translate(-50%, -50%);
     padding: 15px 30px;
     font-size: 18px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 8px;
     cursor: pointer;
-    z-index: 110;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 #orientation-warning {
@@ -60,20 +97,78 @@ canvas {
     align-items: center;
     font-size: 24px;
     z-index: 200;
-    text-align: center;
 }
 
-/* ★★★ 変更点: デバッグモニターのスタイルをバージョン表示用に変更 ★★★ */
 #version-display {
     position: fixed;
-    bottom: 10px;
     right: 10px;
-    padding: 5px 10px;
-    background-color: rgba(0, 0, 0, 0.4);
-    color: rgba(255, 255, 255, 0.7);
-    font-family: monospace;
+    bottom: 10px;
     font-size: 12px;
-    z-index: 100;
-    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#settings-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#settings-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 300;
+    pointer-events: auto; /* オーバーレイはクリックを受け付ける */
+}
+
+#settings-modal {
+    background-color: #2c2c2c;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 400px;
+    color: white;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+}
+
+#close-modal-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
 }
 
