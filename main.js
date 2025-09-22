@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = '4.9 - Touch Fix'; // バージョン番号を更新
+const VERSION = '5.0 - Fullscreen'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -16,6 +16,7 @@ const ui = {
     upButton: null,
     downButton: null,
     resetViewButton: null,
+    fullscreenButton: null, // ★★★ 変更点: フルスクリーンボタンの参照を追加 ★★★
 };
 
 const player = {
@@ -83,6 +84,7 @@ function init() {
     ui.upButton = document.getElementById('up-button');
     ui.downButton = document.getElementById('down-button');
     ui.resetViewButton = document.getElementById('reset-view-button');
+    ui.fullscreenButton = document.getElementById('fullscreen-button'); // ★★★ 変更点: フルスクリーンボタンのDOMを取得 ★★★
 
     updateVersionDisplay();
     setupEventListeners();
@@ -129,6 +131,11 @@ function setupEventListeners() {
         ui.modalOverlay.classList.add('hidden');
     });
 
+    // ★★★ 変更点: フルスクリーンボタンのイベントリスナーを追加 ★★★
+    ui.fullscreenButton.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+
+
     ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
     ui.downButton.addEventListener('touchstart', () => { input.verticalMove = -1; });
     ui.upButton.addEventListener('touchend', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
@@ -141,6 +148,28 @@ function setupEventListeners() {
     ui.downButton.addEventListener('mouseleave', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
 
 }
+
+// ★★★ 変更点: フルスクリーン関連の関数を追加 ★★★
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+function updateFullscreenButton() {
+    if (!document.fullscreenElement) {
+        ui.fullscreenButton.textContent = 'フルスクリーン表示';
+    } else {
+        ui.fullscreenButton.textContent = 'フルスクリーン解除';
+    }
+}
+
 
 // --- 各種イベントハンドラ ---
 function checkScreenOrientation() {
@@ -192,7 +221,6 @@ function onTouchStart(event) {
     if (event.target.closest('#joystick-container') || event.target.closest('#vertical-controls')) return;
     
     const touch = event.touches[0];
-    // ★★★ 変更点: 右半分だけでなく、設定ボタン以外の全域で操作可能に ★★★
     if (event.target.closest('#settings-button')) return;
     
     input.touch.active = true;
@@ -208,7 +236,6 @@ function onTouchMove(event) {
     const deltaY = touch.clientY - input.touch.startY;
 
     controls.touchYaw -= deltaX * 0.002;
-    // ★★★ 変更点: 上下スワイプの方向を反転 ★★★
     controls.touchPitch -= deltaY * 0.002; 
     
     controls.touchPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchPitch));
