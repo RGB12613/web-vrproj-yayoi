@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.6'; // バージョン番号を更新
+const VERSION = 'v1.7'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -12,6 +12,7 @@ let baseQuaternionInverse = new THREE.Quaternion();
 const currentDeviceQuaternion = new THREE.Quaternion(); 
 
 let screenOrientation = 0;
+let lastGyroEvent = null; // ★★★ 変更点: ジャイロの最新情報を保持する変数 ★★★
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -159,6 +160,7 @@ function setBaseOrientation(event) {
 // --- 各種イベントハンドラ ---
 function onDeviceOrientation(event) {
     if (!event.alpha) return;
+    lastGyroEvent = event; // ★★★ 変更点: 最新のイベント情報を保存 ★★★
     updateDeviceQuaternion(event);
 }
 
@@ -175,26 +177,17 @@ function updateDeviceQuaternion(event) {
     const beta = THREE.MathUtils.degToRad(event.beta);   // X
     const gamma = THREE.MathUtils.degToRad(event.gamma); // Y
 
-    const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+    // ★★★ 変更点: カメラのピッチとロールの入力を入れ替え ★★★
+    const euler = new THREE.Euler(gamma, alpha, -beta, 'YXZ');
     currentDeviceQuaternion.setFromEuler(euler);
 
     const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
     currentDeviceQuaternion.multiply(screenTransform);
     
     currentDeviceQuaternion.multiply(worldTransform);
-
-    // デバッグ表示
-    debugMonitor.innerHTML = `
-        Version: ${VERSION}<br>
-        Alpha (ヨー): ${event.alpha.toFixed(2)}<br>
-        Beta (ピッチ): ${event.beta.toFixed(2)}<br>
-        Gamma (ロール): ${(event.gamma || 0).toFixed(2)}
-    `;
 }
 
-// ★★★ 変更点: 画面の向きの判定ロジックを修正 ★★★
 function checkScreenOrientation() {
-    // ブラウザの表示領域の高さが幅より大きい場合、縦向きと判断
     if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
     } else {
@@ -281,6 +274,22 @@ function updatePlayer(deltaTime) {
         player.pitchObject.quaternion.copy(touchQuaternion).multiply(relativeGyroQuaternion);
     } else {
         player.pitchObject.quaternion.copy(touchQuaternion);
+    }
+
+    // ★★★ 変更点: デバッグ表示ロジックを更新 ★★★
+    if (gyroActive && lastGyroEvent) {
+        const cameraEuler = new THREE.Euler().setFromQuaternion(player.pitchObject.quaternion, 'YXZ');
+        debugMonitor.innerHTML = `
+            Version: ${VERSION}<br>
+            --- Device ---<br>
+            Alpha (ヨー): ${lastGyroEvent.alpha.toFixed(2)}<br>
+            Beta (ピッチ): ${lastGyroEvent.beta.toFixed(2)}<br>
+            Gamma (ロール): ${(lastGyroEvent.gamma || 0).toFixed(2)}<br>
+            --- Camera ---<br>
+            Yaw (Y): ${THREE.MathUtils.radToDeg(cameraEuler.y).toFixed(2)}<br>
+            Pitch (X): ${THREE.MathUtils.radToDeg(cameraEuler.x).toFixed(2)}<br>
+            Roll (Z): ${THREE.MathUtils.radToDeg(cameraEuler.z).toFixed(2)}
+        `;
     }
 
     // 2. 移動ベクトルの計算
