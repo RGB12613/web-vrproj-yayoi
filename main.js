@@ -1,39 +1,29 @@
 import * as THREE from 'three';
+// ★★★ 変更点: DeviceOrientationControlsをアドオンからインポート ★★★
+import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v2.3'; // バージョン番号を更新
+const VERSION = 'v2.5'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
 let debugMonitor;
 let orientationWarning;
-
-let gyroActive = false;
-let baseQuaternionInverse = new THREE.Quaternion(); 
-const currentDeviceQuaternion = new THREE.Quaternion(); 
-
-let screenOrientation = 0;
-let lastGyroEvent = null;
+let controls; // ★★★ 変更点: Three.jsのControlsを格納する変数 ★★★
 
 // プレイヤー（カメラ）の状態
 const player = {
     speed: 5.0,
     velocity: new THREE.Vector3(),
     direction: new THREE.Vector3(),
-    rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
     pitchObject: new THREE.Object3D(),
 };
 
 // 入力状態
-const controls = {
+const input = {
     joystick: {
         active: false,
         x: 0,
         y: 0,
-    },
-    touch: {
-        active: false,
-        startX: 0,
-        startY: 0,
     },
 };
 
@@ -73,10 +63,13 @@ function init() {
     testObject.position.set(0, coneHeight / 2, -10);
     scene.add(testObject);
 
+    // ★★★ 変更点: DeviceOrientationControlsを初期化 ★★★
+    // pitchObjectに適用することで、ヨー（左右）の回転を親オブジェクトに任せる
+    controls = new DeviceOrientationControls(player.pitchObject);
+
     setupDebugMonitor();
     setupOrientationWarning();
     setupEventListeners();
-    onScreenOrientationChange();
     checkScreenOrientation();
     animate();
 }
@@ -93,7 +86,7 @@ function setupDebugMonitor() {
     debugMonitor.style.color = 'white';
     debugMonitor.style.fontFamily = 'monospace';
     debugMonitor.style.zIndex = '100';
-    debugMonitor.innerHTML = `Version: ${VERSION}<br>ジャイロ待機中...`;
+    debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls`;
     document.body.appendChild(debugMonitor);
 }
 
@@ -119,88 +112,27 @@ function setupOrientationWarning() {
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    window.addEventListener('orientationchange', onScreenOrientationChange); 
+    window.addEventListener('orientationchange', checkScreenOrientation);
     
     const joystickContainer = document.getElementById('joystick-container');
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
-    
-    window.addEventListener('touchstart', onTouchStart, { passive: false });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
 
-    document.getElementById('gyro-button').addEventListener('click', requestDeviceOrientation);
-}
+    // 【注意】DeviceOrientationControlsが回転を制御するため、タッチによる視点移動は無効化
+    // window.addEventListener('touchstart', onTouchStart, { passive: false });
+    // window.addEventListener('touchmove', onTouchMove, { passive: false });
+    // window.addEventListener('touchend', onTouchEnd);
 
-// --- ジャイロセンサーの有効化 (DeviceOrientationEvent のみ) ---
-function requestDeviceOrientation() {
-    document.getElementById('gyro-button').style.display = 'none';
-    
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(permissionState => {
-            if (permissionState === 'granted') {
-                window.addEventListener('deviceorientation', onDeviceOrientation);
-                // 許可された後、最初のイベントで基準を設定
-                window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
-            }
-        }).catch(console.error);
-    } else {
-        window.addEventListener('deviceorientation', onDeviceOrientation);
-        // その他のブラウザでは、最初のイベントで基準を設定
-        window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
-    }
-}
-
-// 基準となる向きを設定
-function setBaseOrientation(event) {
-    if (!event.alpha) return;
-    updateDeviceQuaternion(event);
-    baseQuaternionInverse.copy(currentDeviceQuaternion).invert();
-}
-
-// ジャイロセンサーの情報を更新
-function onDeviceOrientation(event) {
-    if (!event.alpha) return;
-    gyroActive = true;
-    lastGyroEvent = event;
-    updateDeviceQuaternion(event);
-}
-
-// デバイスの向きからクォータニオンを計算
-function updateDeviceQuaternion(event) {
-    const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
-    const alpha = THREE.MathUtils.degToRad(event.alpha); // Z axis / Yaw
-    const beta = THREE.MathUtils.degToRad(event.beta);   // X axis / Pitch
-    const gamma = THREE.MathUtils.degToRad(event.gamma); // Y axis / Roll
-    
-    // 各軸の回転からクォータニオンを直接合成する方式
-    // Three.jsの回転順序 'YXZ' に従い、各軸の回転クォータニオンを作成
-    
-    // 1. ヨー(alpha)でY軸周りの回転 (左右)
-    const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), alpha);
-
-    // 2. ピッチ(今回は-gamma)でX軸周りの回転 (上下)
-    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -gamma);
-
-    // 3. ロール(今回は-beta)でZ軸周りの回転 (傾き)
-    const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -beta);
-
-    // クォータニオンを Y -> X -> Z の順で掛け合わせて合成
-    currentDeviceQuaternion.copy(qYaw).multiply(qPitch).multiply(qRoll);
-    
-    const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
-    currentDeviceQuaternion.multiply(screenTransform);
-    currentDeviceQuaternion.multiply(worldTransform);
+    // ★★★ 変更点: ボタンの処理をControlsの接続に変更 ★★★
+    document.getElementById('gyro-button').addEventListener('click', () => {
+        controls.connect();
+        document.getElementById('gyro-button').style.display = 'none';
+    });
 }
 
 
 // --- 各種イベントハンドラ ---
-function onScreenOrientationChange() {
-    screenOrientation = window.screen.orientation.angle || window.orientation || 0;
-    setTimeout(checkScreenOrientation, 100);
-}
-
 function checkScreenOrientation() {
     if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
@@ -216,15 +148,15 @@ function onWindowResize() {
     checkScreenOrientation();
 }
 
-// --- ジョイスティックとタッチ操作 (変更なし) ---
+// --- ジョイスティック操作 (変更なし) ---
 function onJoystickStart(event) {
     event.preventDefault();
-    controls.joystick.active = true;
+    input.joystick.active = true;
 }
 
 function onJoystickMove(event) {
     event.preventDefault();
-    if (!controls.joystick.active) return;
+    if (!input.joystick.active) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const touch = event.touches[0];
     const x = (touch.clientX - rect.left - rect.width / 2);
@@ -234,90 +166,41 @@ function onJoystickMove(event) {
     const clampedX = (distance > maxDistance) ? x / distance * maxDistance : x;
     const clampedY = (distance > maxDistance) ? y / distance * maxDistance : y;
     document.getElementById('joystick-knob').style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-    controls.joystick.x = clampedX / maxDistance;
-    controls.joystick.y = clampedY / maxDistance;
+    input.joystick.x = clampedX / maxDistance;
+    input.joystick.y = clampedY / maxDistance;
 }
 
 function onJoystickEnd() {
-    controls.joystick.active = false;
+    input.joystick.active = false;
     document.getElementById('joystick-knob').style.transform = `translate(0px, 0px)`;
-    controls.joystick.x = 0;
-    controls.joystick.y = 0;
+    input.joystick.x = 0;
+    input.joystick.y = 0;
 }
 
-function onTouchStart(event) {
-    if (event.target.closest('#joystick-container')) return;
-    const touch = event.touches[0];
-    if (touch.clientX < window.innerWidth / 2) return;
-    controls.touch.active = true;
-    controls.touch.startX = touch.clientX;
-    controls.touch.startY = touch.clientY;
-}
-
-function onTouchMove(event) {
-    if (!controls.touch.active) return;
-    const touch = event.touches[0];
-    const deltaX = touch.clientX - controls.touch.startX;
-    const deltaY = touch.clientY - controls.touch.startY;
-    player.rotation.y -= deltaX * 0.002;
-    player.rotation.x -= deltaY * 0.002;
-    player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
-    controls.touch.startX = touch.clientX;
-    controls.touch.startY = touch.clientY;
-}
-
-function onTouchEnd() {
-    controls.touch.active = false;
-}
 
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
+    
+    // ★★★ 変更点: コントローラーの状態を更新 ★★★
+    controls.update();
+    
     updatePlayer(deltaTime);
     renderer.render(scene, camera);
 }
 
-// --- プレイヤー（カメラ）の状態更新 ---
+// --- プレイヤーの移動更新 ---
 function updatePlayer(deltaTime) {
-    // 1. 視点（カメラの向き）の更新
-    const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
-
-    if (gyroActive) {
-        const relativeGyroQuaternion = currentDeviceQuaternion.clone().multiply(baseQuaternionInverse);
-        player.pitchObject.quaternion.copy(touchQuaternion).multiply(relativeGyroQuaternion);
-    } else {
-        player.pitchObject.quaternion.copy(touchQuaternion);
-    }
-
-    // デバッグ表示ロジックを更新
-    if (gyroActive && lastGyroEvent) {
-        const cameraEuler = new THREE.Euler().setFromQuaternion(player.pitchObject.quaternion, 'YXZ');
-        const q = currentDeviceQuaternion; // ★★★ 変更点: 表示するクォータニオンを取得 ★★★
-        const sensorDataHtml = `--- Device (Euler) ---<br>
-            Alpha (ヨー): ${lastGyroEvent.alpha.toFixed(2)}<br>
-            Beta (ピッチ): ${lastGyroEvent.beta.toFixed(2)}<br>
-            Gamma (ロール): ${(lastGyroEvent.gamma || 0).toFixed(2)}<br>
-            --- Device (Quaternion) ---<br>
-            X:${q.x.toFixed(2)}, Y:${q.y.toFixed(2)}, Z:${q.z.toFixed(2)}, W:${q.w.toFixed(2)}`; // ★★★ 変更点: クォータニオンの値を表示 ★★★
-        
-        debugMonitor.innerHTML = `
-            Version: ${VERSION}<br>
-            API: DeviceOrientationEvent<br>
-            ${sensorDataHtml}<br>
-            --- Camera ---<br>
-            Yaw (Y): ${THREE.MathUtils.radToDeg(cameraEuler.y).toFixed(2)}<br>
-            Pitch (X): ${THREE.MathUtils.radToDeg(cameraEuler.x).toFixed(2)}<br>
-            Roll (Z): ${THREE.MathUtils.radToDeg(cameraEuler.z).toFixed(2)}
-        `;
-    }
-
-    // 2. 移動ベクトルの計算
-    const moveDirection = new THREE.Vector3(controls.joystick.x, 0, controls.joystick.y);
+    // 移動ベクトルの計算
+    const moveDirection = new THREE.Vector3(input.joystick.x, 0, input.joystick.y);
+    
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
+        // ★★★ 変更点: 回転はcontrolsが管理するpitchObjectから取得 ★★★
         player.pitchObject.getWorldQuaternion(moveQuaternion);
 
+        // 上下を向いた際に移動方向がおかしくならないよう、X軸とZ軸の回転をリセット
         const euler = new THREE.Euler().setFromQuaternion(moveQuaternion, 'YXZ');
         euler.x = 0;
         euler.z = 0;
