@@ -1,8 +1,8 @@
-// ★★★ 変更点: ライブラリを完全なURLで直接インポート ★★★
+// ★★★ 変更点: 安定して動作するCDNのURLに修正 ★★★
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v3.0 - Stable'; // バージョン番号を更新
+const VERSION = 'v3.1 - Stable'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
