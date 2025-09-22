@@ -5,25 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>3D空間移動デモ</title>
     <link rel="stylesheet" href="style.css">
-    <!-- ★★★ 変更点: 混乱を避けるため、importmapを完全に削除 ★★★ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- 仮想ジョイスティック -->
     <div id="joystick-container">
         <div id="joystick-knob"></div>
     </div>
 
-    <!-- ジャイロ有効化ボタン -->
     <button id="gyro-button">ジャイロセンサーを有効化</button>
     
-    <!-- 縦画面警告 -->
     <div id="orientation-warning">画面を横にしてください</div>
+    
+    <!-- ★★★ 変更点: デバッグモニターをバージョン表示専用に変更 ★★★ -->
+    <div id="version-display"></div>
 
-    <!-- デバッグモニター -->
-    <div id="debug-monitor"></div>
-
-
-    <!-- メインのスクリプト -->
     <script type="module" src="main.js"></script>
 </body>
 </html>

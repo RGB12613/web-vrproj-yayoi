@@ -1,13 +1,11 @@
-// ★★★ 変更点: 安定して動作するCDNのURLに修正 ★★★
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-// ★★★ 変更点: ローカルのファイルからDeviceOrientationControlsをインポート ★★★
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = 'v4.0 - Local Controls'; // バージョン番号を更新
+const VERSION = 'v4.2 - UI Restore'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
-let debugMonitor;
+let versionDisplay; // 変数名を変更
 let orientationWarning;
 let controls;
 
@@ -62,23 +60,27 @@ function init() {
 
     controls = new DeviceOrientationControls(camera);
     
-    debugMonitor = document.getElementById('debug-monitor');
+    // ★★★ 変更点: UI要素を取得 ★★★
+    versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
     
-    updateDebugMonitor();
+    updateVersionDisplay();
     setupEventListeners();
-    checkScreenOrientation();
+    checkScreenOrientation(); // 初回実行
     animate();
 }
 
 // --- UI要素の更新 ---
-function updateDebugMonitor() {
-    debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls (Local)`;
+function updateVersionDisplay() {
+    // ★★★ 変更点: バージョン表示のみに機能を限定 ★★★
+    versionDisplay.innerHTML = `v${VERSION}`;
 }
 
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
+    // ★★★ 変更点: 画面回転時のイベントリスナーを再追加 ★★★
+    window.addEventListener('orientationchange', checkScreenOrientation);
     
     const joystickContainer = document.getElementById('joystick-container');
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
@@ -86,13 +88,14 @@ function setupEventListeners() {
     joystickContainer.addEventListener('touchend', onJoystickEnd);
 
     document.getElementById('gyro-button').addEventListener('click', () => {
-        // .connect()はコンストラクタで自動的に呼ばれるため、ここでは不要
+        controls.connect();
         document.getElementById('gyro-button').style.display = 'none';
     });
 }
 
 // --- 各種イベントハンドラ ---
 function checkScreenOrientation() {
+    // ★★★ 変更点: 縦画面警告の表示ロジックを再実装 ★★★
     if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
     } else {

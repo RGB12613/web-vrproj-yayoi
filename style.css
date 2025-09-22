@@ -1,51 +1,79 @@
 body {
     margin: 0;
     overflow: hidden;
+    font-family: 'Inter', sans-serif;
     background-color: #000;
-    font-family: 'Helvetica', 'Arial', sans-serif;
 }
 
 canvas {
     display: block;
 }
 
-/* 仮想ジョイスティックのスタイル */
 #joystick-container {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
     width: 120px;
     height: 120px;
-    background: rgba(128, 128, 128, 0.3);
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    user-select: none; /* テキスト選択を無効化 */
-    -webkit-user-select: none;
+    z-index: 100;
 }
 
 #joystick-knob {
     width: 60px;
     height: 60px;
-    background: rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.4);
     border-radius: 50%;
-    position: absolute;
-    cursor: grab;
+    transition: transform 0.1s;
 }
 
-/* ジャイロセンサー有効化ボタン */
 #gyro-button {
-    position: absolute;
-    top: 20px;
+    position: fixed;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    font-size: 16px;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #4CAF50;
     color: white;
-    background-color: rgba(0, 122, 255, 0.8);
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    z-index: 10;
+    z-index: 110;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+
+#orientation-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: none; /* Initially hidden */
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    z-index: 200;
+    text-align: center;
+}
+
+/* ★★★ 変更点: デバッグモニターのスタイルをバージョン表示用に変更 ★★★ */
+#version-display {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 100;
+    border-radius: 4px;
+}
+
