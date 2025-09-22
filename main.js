@@ -324,8 +324,8 @@ function updatePlayer(deltaTime) {
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
 
-        // 横画面（左が上）を前提とした固定の補正をかける
-        const landscapeCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, -Math.PI / 2); // -90度回転
+        // ★★★ 変更点: 横画面（左が上）を前提とした固定の補正をかける回転値を修正 ★★★
+        const landscapeCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, Math.PI / 2); // -90度から+90度回転に変更
         gyroQuaternion.premultiply(landscapeCorrection);
 
 
