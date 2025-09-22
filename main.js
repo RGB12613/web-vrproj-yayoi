@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.1'; // バージョン番号を更新
+const VERSION = 'v1.2'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
@@ -318,11 +318,11 @@ function updatePlayer(deltaTime) {
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
         const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
-        // ★★★ 変更点: ジンバルロックを避けるため、安定した操作方法に変更 ★★★
+        // ★★★ 変更点: ユーザーの体感に合わせて、ピッチとロールの入力軸を入れ替え ★★★
         const euler = new THREE.Euler(
-            THREE.MathUtils.degToRad(deltaBeta),  // 視点の上下 (Pitch) を、デバイスのピッチ (beta) で操作
+            THREE.MathUtils.degToRad(deltaGamma), // 視点の上下 (Pitch) を、デバイスのロール (gamma) で操作
             THREE.MathUtils.degToRad(deltaAlpha), // 視点の左右 (Yaw) を、デバイスのヨー (alpha) で操作
-            -THREE.MathUtils.degToRad(deltaGamma),// 視点のロールを、デバイスのロール (gamma) で操作
+            -THREE.MathUtils.degToRad(deltaBeta), // 視点のロールを、デバイスのピッチ (beta) で操作
             'YXZ'
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
