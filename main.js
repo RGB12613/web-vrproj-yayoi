@@ -3,6 +3,7 @@ import * as THREE from 'three';
 let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
+let debugMonitor; // デバッグ情報を表示するDOM要素
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 // プレイヤー（カメラ）の状態
@@ -83,12 +84,31 @@ function init() {
     // 円錐の底面が地面(y=0)に接するように、位置を高さの半分だけ上に設定
     testObject.position.set(0, coneHeight / 2, -10); 
     scene.add(testObject);
+
+    // デバッグモニターの作成
+    setupDebugMonitor();
     
     // イベントリスナーの登録
     setupEventListeners();
 
     // アニメーションループ開始
     animate();
+}
+
+// --- デバッグモニターのセットアップ ---
+function setupDebugMonitor() {
+    debugMonitor = document.createElement('div');
+    debugMonitor.id = 'debug-monitor';
+    debugMonitor.style.position = 'fixed';
+    debugMonitor.style.top = '10px';
+    debugMonitor.style.right = '10px';
+    debugMonitor.style.padding = '10px';
+    debugMonitor.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    debugMonitor.style.color = 'white';
+    debugMonitor.style.fontFamily = 'monospace';
+    debugMonitor.style.zIndex = '100';
+    debugMonitor.innerHTML = 'ジャイロ待機中...';
+    document.body.appendChild(debugMonitor);
 }
 
 // --- イベントリスナーの設定 ---
@@ -141,6 +161,7 @@ function onWindowResize() {
 }
 
 // ジョイスティック操作
+// ... (変更なし) ...
 function onJoystickStart(event) {
     event.preventDefault();
     controls.joystick.active = true;
@@ -177,6 +198,7 @@ function onJoystickEnd() {
 }
 
 // 画面タッチによる視点移動
+// ... (変更なし) ...
 function onTouchStart(event) {
     // ジョイスティック上でのタッチは無視
     if (event.target.closest('#joystick-container')) return;
@@ -246,16 +268,24 @@ function updatePlayer(deltaTime) {
     if (controls.gyro.active && controls.gyro.deviceOrientation.alpha && deviceOrientationBase) {
         // --- ジャイロによる回転計算 ---
         const currentOrientation = controls.gyro.deviceOrientation;
+
+        // デバッグモニターの表示を更新
+        debugMonitor.innerHTML = `
+            Alpha (ヨー): ${currentOrientation.alpha.toFixed(2)}<br>
+            Beta (ピッチ): ${currentOrientation.beta.toFixed(2)}<br>
+            Gamma (ロール): ${(currentOrientation.gamma || 0).toFixed(2)}
+        `;
         
         // 基準からの差分を計算
         const deltaAlpha = currentOrientation.alpha - deviceOrientationBase.alpha;
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
         const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
+        // ★★★ 変更点: ヨー(alpha)で上下(X軸回転)、ピッチ(beta)で左右(Y軸回転)を操作するように軸を入れ替え ★★★
         const euler = new THREE.Euler(
-            THREE.MathUtils.degToRad(deltaBeta),
-            THREE.MathUtils.degToRad(deltaAlpha),
-            -THREE.MathUtils.degToRad(deltaGamma), // Rollを追加し、一般的な右手系に合わせるために反転
+            THREE.MathUtils.degToRad(deltaAlpha), // 視点の上下 (Pitch) を、デバイスのヨー (alpha) で操作
+            THREE.MathUtils.degToRad(deltaBeta),  // 視点の左右 (Yaw) を、デバイスのピッチ (beta) で操作
+            -THREE.MathUtils.degToRad(deltaGamma),// ロールは変更なし
             'YXZ'
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
