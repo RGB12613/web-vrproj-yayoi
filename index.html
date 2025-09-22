@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>3D空間移動デモ</title>
     <link rel="stylesheet" href="style.css">
-    <!-- importmap: Three.jsとアドオンの読み込みパスを定義 -->
+    <!-- ★★★ 変更点: Three.jsのアドオンを読み込むための設定を追加 ★★★ -->
     <script type="importmap">
     {
         "imports": {
@@ -23,6 +23,13 @@
 
     <!-- ジャイロ有効化ボタン -->
     <button id="gyro-button">ジャイロセンサーを有効化</button>
+    
+    <!-- 縦画面警告 -->
+    <div id="orientation-warning">画面を横にしてください</div>
+
+    <!-- デバッグモニター -->
+    <div id="debug-monitor"></div>
+
 
     <!-- メインのスクリプト -->
     <script type="module" src="main.js"></script>

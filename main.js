@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // DeviceOrientationControlsをアドオンからインポート
 import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v2.7'; // バージョン番号を更新
+const VERSION = 'v2.8'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -63,52 +63,26 @@ function init() {
 
     controls = new DeviceOrientationControls(camera);
 
-    setupDebugMonitor();
-    setupOrientationWarning();
+    // ★★★ 変更点: HTMLからUI要素を取得するように変更 ★★★
+    debugMonitor = document.getElementById('debug-monitor');
+    orientationWarning = document.getElementById('orientation-warning');
+    
+    updateDebugMonitor(); // 初期表示
     setupEventListeners();
-    checkScreenOrientation();
+    checkScreenOrientation(); // 初回チェック
     animate();
 }
 
-// --- UI要素のセットアップ ---
-function setupDebugMonitor() {
-    debugMonitor = document.createElement('div');
-    debugMonitor.id = 'debug-monitor';
-    debugMonitor.style.position = 'fixed';
-    debugMonitor.style.top = '10px';
-    debugMonitor.style.right = '10px';
-    debugMonitor.style.padding = '10px';
-    debugMonitor.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    debugMonitor.style.color = 'white';
-    debugMonitor.style.fontFamily = 'monospace';
-    debugMonitor.style.zIndex = '100';
+// --- UI要素の更新 ---
+function updateDebugMonitor() {
     debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls`;
-    document.body.appendChild(debugMonitor);
 }
 
-function setupOrientationWarning() {
-    orientationWarning = document.createElement('div');
-    orientationWarning.id = 'orientation-warning';
-    orientationWarning.style.position = 'fixed';
-    orientationWarning.style.top = '0';
-    orientationWarning.style.left = '0';
-    orientationWarning.style.width = '100%';
-    orientationWarning.style.height = '100%';
-    orientationWarning.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    orientationWarning.style.color = 'white';
-    orientationWarning.style.display = 'none';
-    orientationWarning.style.justifyContent = 'center';
-    orientationWarning.style.alignItems = 'center';
-    orientationWarning.style.fontSize = '24px';
-    orientationWarning.style.zIndex = '200';
-    orientationWarning.innerHTML = '画面を横にしてください';
-    document.body.appendChild(orientationWarning);
-}
 
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
+    // ★★★ 変更点: orientationchangeイベントを削除し、resizeイベントに統合 ★★★
     window.addEventListener('resize', onWindowResize);
-    window.addEventListener('orientationchange', checkScreenOrientation);
     
     const joystickContainer = document.getElementById('joystick-container');
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
@@ -136,7 +110,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    checkScreenOrientation();
+    checkScreenOrientation(); // 画面リサイズ時に向きもチェック
 }
 
 // --- ジョイスティック操作 (変更なし) ---
