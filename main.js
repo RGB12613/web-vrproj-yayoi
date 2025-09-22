@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = '4.7 - Reset View'; // バージョン番号を更新
+const VERSION = '4.7.3'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;

@@ -22,18 +22,17 @@ canvas {
     pointer-events: auto;
 }
 
-/* ★★★ 変更点: 左下UIの親コンテナのスタイル ★★★ */
+/* ★★★ 変更点: Flexboxの配置方法をより堅牢に修正 ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 20px;
     bottom: 20px;
     display: flex;
-    flex-direction: column; /* 要素を縦に並べる */
-    align-items: center; /* 中央揃え */
-    gap: 20px; /* 要素間のスペース */
+    flex-direction: column-reverse; /* 下から上に要素を並べる */
+    align-items: center;
+    gap: 15px;
 }
 
-/* ★★★ 変更点: position指定を削除 ★★★ */
 #joystick-container {
     width: 120px;
     height: 120px;
@@ -52,10 +51,9 @@ canvas {
     transition: transform 0.1s;
 }
 
-/* ★★★ 変更点: position指定を削除し、ボタンを横並びに変更 ★★★ */
 #vertical-controls {
     display: flex;
-    flex-direction: row; /* ボタンを横に並べる */
+    flex-direction: row; /* 上下ボタンは横並びにする */
     gap: 10px;
 }
 
