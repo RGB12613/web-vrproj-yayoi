@@ -15,19 +15,17 @@ canvas {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none; /* UIコンテナ自体はクリックを透過させる */
+    pointer-events: none;
 }
 
-/* UI要素はクリックできるようにする */
 #ui-container > * {
     pointer-events: auto;
 }
 
-/* ★★★ 変更点: アナログスティックを左下に配置 ★★★ */
 #joystick-container {
     position: fixed;
     left: 50px;
-    bottom: 50px; /* 少し上に移動 */
+    bottom: 50px;
     width: 120px;
     height: 120px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -45,12 +43,11 @@ canvas {
     transition: transform 0.1s;
 }
 
-/* ★★★ 変更点: 上下ボタンを左中央に配置 ★★★ */
 #vertical-controls {
     position: fixed;
     left: 50px; 
     top: 50%;
-    transform: translateY(-50%); /* 上下中央揃え */
+    transform: translateY(-50%);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -69,7 +66,7 @@ canvas {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    user-select: none; /* テキスト選択を防ぐ */
+    user-select: none;
 }
 
 .vertical-button:active {
@@ -95,14 +92,13 @@ canvas {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
-    display: none; /* Initially hidden */
+    display: none;
     justify-content: center;
     align-items: center;
     font-size: 24px;
     z-index: 200;
 }
 
-/* ★★★ 変更点: バージョン表示を右下に配置（変更なしだが確認用） ★★★ */
 #version-display {
     position: fixed;
     right: 10px;
@@ -111,7 +107,6 @@ canvas {
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* ★★★ 変更点: 設定ボタンを左上に配置 ★★★ */
 #settings-button {
     position: fixed;
     top: 20px;
@@ -175,5 +170,25 @@ canvas {
 
 .hidden {
     display: none !important;
+}
+
+/* ★★★ 変更点: 設定項目用のスタイルを追加 ★★★ */
+.settings-item {
+    margin-bottom: 15px;
+}
+
+.modal-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #444;
+    border: 1px solid #666;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.modal-button:active {
+    background-color: #555;
 }
 

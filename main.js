@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = '4.6 - UI Layout'; // バージョン番号を更新
+const VERSION = '4.7 - Reset View'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -15,6 +15,7 @@ const ui = {
     closeModalButton: null,
     upButton: null,
     downButton: null,
+    resetViewButton: null, // ★★★ 変更点: リセットボタンの参照を追加 ★★★
 };
 
 const player = {
@@ -81,6 +82,7 @@ function init() {
     ui.closeModalButton = document.getElementById('close-modal-button');
     ui.upButton = document.getElementById('up-button');
     ui.downButton = document.getElementById('down-button');
+    ui.resetViewButton = document.getElementById('reset-view-button'); // ★★★ 変更点: リセットボタンのDOMを取得 ★★★
 
     updateVersionDisplay();
     setupEventListeners();
@@ -118,6 +120,14 @@ function setupEventListeners() {
         if (e.target === ui.modalOverlay) {
             ui.modalOverlay.classList.add('hidden');
         }
+    });
+
+    // ★★★ 変更点: リセットボタンのイベントリスナーを追加 ★★★
+    ui.resetViewButton.addEventListener('click', () => {
+        if (controls) {
+            controls.resetView();
+        }
+        ui.modalOverlay.classList.add('hidden'); // モーダルを閉じる
     });
 
     ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
