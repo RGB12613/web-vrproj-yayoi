@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.2'; // バージョン番号を更新
+const VERSION = 'v1.3'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
@@ -318,14 +318,30 @@ function updatePlayer(deltaTime) {
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
         const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
-        // ★★★ 変更点: ユーザーの体感に合わせて、ピッチとロールの入力軸を入れ替え ★★★
-        const euler = new THREE.Euler(
-            THREE.MathUtils.degToRad(deltaGamma), // 視点の上下 (Pitch) を、デバイスのロール (gamma) で操作
-            THREE.MathUtils.degToRad(deltaAlpha), // 視点の左右 (Yaw) を、デバイスのヨー (alpha) で操作
-            -THREE.MathUtils.degToRad(deltaBeta), // 視点のロールを、デバイスのピッチ (beta) で操作
-            'YXZ'
+        // ★★★ 変更点: オイラー角を直接使わず、各軸の回転からクォータニオンを合成 ★★★
+        // Three.jsの回転順序 'YXZ' に従い、Y軸、X軸、Z軸の順で回転を適用します。
+        
+        // 1. ヨー(alpha)でY軸周りの回転（左右）
+        const qYaw = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 1, 0), 
+            THREE.MathUtils.degToRad(deltaAlpha)
         );
-        const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
+
+        // 2. ロール(gamma)でX軸周りの回転（上下）
+        const qPitch = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(1, 0, 0), 
+            THREE.MathUtils.degToRad(deltaGamma)
+        );
+
+        // 3. ピッチ(beta)でZ軸周りの回転（傾き）
+        const qRoll = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 0, 1), 
+            -THREE.MathUtils.degToRad(deltaBeta)
+        );
+
+        // クォータニオンを合成。Y -> X -> Z の順で掛け合わせる。
+        const gyroQuaternion = new THREE.Quaternion().multiply(qYaw).multiply(qPitch).multiply(qRoll);
+
 
         // --- タッチによる回転計算 ---
         const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
