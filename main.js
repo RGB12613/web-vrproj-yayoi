@@ -1,21 +1,20 @@
 import * as THREE from 'three';
-// ★★★ 変更点: DeviceOrientationControlsをアドオンからインポート ★★★
+// DeviceOrientationControlsをアドオンからインポート
 import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v2.5'; // バージョン番号を更新
+const VERSION = 'v2.6'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
 let debugMonitor;
 let orientationWarning;
-let controls; // ★★★ 変更点: Three.jsのControlsを格納する変数 ★★★
+let controls; // Three.jsのControlsを格納する変数
 
 // プレイヤー（カメラ）の状態
 const player = {
     speed: 5.0,
     velocity: new THREE.Vector3(),
     direction: new THREE.Vector3(),
-    pitchObject: new THREE.Object3D(),
 };
 
 // 入力状態
@@ -40,8 +39,8 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    player.pitchObject.add(camera);
-    scene.add(player.pitchObject);
+    // ★★★ 変更点: カメラを直接シーンに追加 ★★★
+    scene.add(camera);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
@@ -63,9 +62,8 @@ function init() {
     testObject.position.set(0, coneHeight / 2, -10);
     scene.add(testObject);
 
-    // ★★★ 変更点: DeviceOrientationControlsを初期化 ★★★
-    // pitchObjectに適用することで、ヨー（左右）の回転を親オブジェクトに任せる
-    controls = new DeviceOrientationControls(player.pitchObject);
+    // ★★★ 変更点: DeviceOrientationControlsをカメラに直接適用 ★★★
+    controls = new DeviceOrientationControls(camera);
 
     setupDebugMonitor();
     setupOrientationWarning();
@@ -119,12 +117,7 @@ function setupEventListeners() {
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
 
-    // 【注意】DeviceOrientationControlsが回転を制御するため、タッチによる視点移動は無効化
-    // window.addEventListener('touchstart', onTouchStart, { passive: false });
-    // window.addEventListener('touchmove', onTouchMove, { passive: false });
-    // window.addEventListener('touchend', onTouchEnd);
-
-    // ★★★ 変更点: ボタンの処理をControlsの接続に変更 ★★★
+    // ボタンの処理をControlsの接続に変更
     document.getElementById('gyro-button').addEventListener('click', () => {
         controls.connect();
         document.getElementById('gyro-button').style.display = 'none';
@@ -183,7 +176,7 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     
-    // ★★★ 変更点: コントローラーの状態を更新 ★★★
+    // コントローラーの状態を更新
     controls.update();
     
     updatePlayer(deltaTime);
@@ -197,8 +190,8 @@ function updatePlayer(deltaTime) {
     
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
-        // ★★★ 変更点: 回転はcontrolsが管理するpitchObjectから取得 ★★★
-        player.pitchObject.getWorldQuaternion(moveQuaternion);
+        // ★★★ 変更点: 回転はカメラから直接取得 ★★★
+        camera.getWorldQuaternion(moveQuaternion);
 
         // 上下を向いた際に移動方向がおかしくならないよう、X軸とZ軸の回転をリセット
         const euler = new THREE.Euler().setFromQuaternion(moveQuaternion, 'YXZ');
@@ -212,7 +205,8 @@ function updatePlayer(deltaTime) {
     }
     
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
-    player.pitchObject.position.add(player.velocity);
+    // ★★★ 変更点: カメラの位置を直接更新 ★★★
+    camera.position.add(player.velocity);
 }
 
 // --- 実行開始 ---
