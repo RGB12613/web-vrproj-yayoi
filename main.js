@@ -167,5 +167,6 @@ function updatePlayer(deltaTime) {
 }
 
 // --- 実行開始 ---
-init();
+// ★★★ 変更点: DOMが完全に読み込まれてから初期化処理を実行 ★★★
+window.addEventListener('DOMContentLoaded', init);
 
