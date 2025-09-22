@@ -1,7 +1,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = '4.5 - UI Additions'; // バージョン番号を更新
+const VERSION = '4.6 - UI Layout'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -34,7 +34,7 @@ const input = {
         startX: 0,
         startY: 0,
     },
-    verticalMove: 0, // 1: up, -1: down, 0: stop
+    verticalMove: 0,
 };
 
 // --- 初期化処理 ---
@@ -74,7 +74,6 @@ function init() {
 
     controls = new DeviceOrientationControls(camera);
     
-    // UI要素の取得
     versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
     ui.settingsButton = document.getElementById('settings-button');
@@ -85,7 +84,7 @@ function init() {
 
     updateVersionDisplay();
     setupEventListeners();
-    checkScreenOrientation(); // 初回実行
+    checkScreenOrientation();
     animate();
 }
 
@@ -113,7 +112,6 @@ function setupEventListeners() {
         document.getElementById('gyro-button').style.display = 'none';
     });
     
-    // 設定モーダル
     ui.settingsButton.addEventListener('click', () => ui.modalOverlay.classList.remove('hidden'));
     ui.closeModalButton.addEventListener('click', () => ui.modalOverlay.classList.add('hidden'));
     ui.modalOverlay.addEventListener('click', (e) => {
@@ -122,12 +120,10 @@ function setupEventListeners() {
         }
     });
 
-    // 上下移動ボタン
     ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
     ui.downButton.addEventListener('touchstart', () => { input.verticalMove = -1; });
     ui.upButton.addEventListener('touchend', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
     ui.downButton.addEventListener('touchend', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
-    // マウスイベントも追加（PCでのデバッグ用）
     ui.upButton.addEventListener('mousedown', () => { input.verticalMove = 1; });
     ui.downButton.addEventListener('mousedown', () => { input.verticalMove = -1; });
     ui.upButton.addEventListener('mouseup', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
@@ -226,7 +222,6 @@ function animate() {
 
 // --- プレイヤーの移動更新 ---
 function updatePlayer(deltaTime) {
-    // 水平方向の移動
     const moveDirection = new THREE.Vector3(input.joystick.x, 0, input.joystick.y);
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
@@ -242,7 +237,6 @@ function updatePlayer(deltaTime) {
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
     camera.position.add(player.velocity);
     
-    // 上下方向の移動
     const verticalVelocity = input.verticalMove * player.speed * deltaTime;
     camera.position.y += verticalVelocity;
 }

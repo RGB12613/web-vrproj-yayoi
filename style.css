@@ -23,10 +23,11 @@ canvas {
     pointer-events: auto;
 }
 
+/* ★★★ 変更点: アナログスティックを左下に配置 ★★★ */
 #joystick-container {
     position: fixed;
-    right: 50px; /* 右寄せに変更 */
-    bottom: 100px;
+    left: 50px;
+    bottom: 50px; /* 少し上に移動 */
     width: 120px;
     height: 120px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -44,10 +45,12 @@ canvas {
     transition: transform 0.1s;
 }
 
+/* ★★★ 変更点: 上下ボタンを左中央に配置 ★★★ */
 #vertical-controls {
     position: fixed;
     left: 50px; 
-    bottom: 100px; /* ジョイスティックと高さを合わせる */
+    top: 50%;
+    transform: translateY(-50%); /* 上下中央揃え */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -99,6 +102,7 @@ canvas {
     z-index: 200;
 }
 
+/* ★★★ 変更点: バージョン表示を右下に配置（変更なしだが確認用） ★★★ */
 #version-display {
     position: fixed;
     right: 10px;
@@ -107,10 +111,11 @@ canvas {
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* ★★★ 変更点: 設定ボタンを左上に配置 ★★★ */
 #settings-button {
     position: fixed;
     top: 20px;
-    right: 20px;
+    left: 20px;
     width: 40px;
     height: 40px;
     background-color: rgba(0, 0, 0, 0.3);
@@ -135,7 +140,7 @@ canvas {
     justify-content: center;
     align-items: center;
     z-index: 300;
-    pointer-events: auto; /* オーバーレイはクリックを受け付ける */
+    pointer-events: auto;
 }
 
 #settings-modal {
