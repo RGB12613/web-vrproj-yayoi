@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.4'; // バージョン番号を更新
+const VERSION = 'v1.5'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
 let debugMonitor;
 let orientationWarning;
 
-// ★★★ 変更点: ジャイロの回転を管理する変数を追加 ★★★
 let gyroActive = false;
-let baseQuaternionInverse = new THREE.Quaternion(); // ジャイロ有効化時の向きの逆クォータニオン
-const currentDeviceQuaternion = new THREE.Quaternion(); // 現在のデバイスの向き
+let baseQuaternionInverse = new THREE.Quaternion(); 
+const currentDeviceQuaternion = new THREE.Quaternion(); 
+
+// ★★★ 変更点: 画面の向きを保存する変数を追加 ★★★
+let screenOrientation = 0;
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -74,6 +76,7 @@ function init() {
     setupDebugMonitor();
     setupOrientationWarning();
     setupEventListeners();
+    onScreenOrientationChange(); // ★★★ 変更点: 初期の画面向きを取得
     checkScreenOrientation();
     animate();
 }
@@ -116,7 +119,8 @@ function setupOrientationWarning() {
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    window.addEventListener('orientationchange', checkScreenOrientation);
+    // ★★★ 変更点: orientationchangeイベントリスナーを画面向き取得専用に変更 ★★★
+    window.addEventListener('orientationchange', onScreenOrientationChange); 
     
     const joystickContainer = document.getElementById('joystick-container');
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
@@ -136,7 +140,6 @@ function requestDeviceOrientation() {
         DeviceOrientationEvent.requestPermission().then(permissionState => {
             if (permissionState === 'granted') {
                 gyroActive = true;
-                // ★★★ 変更点: 最初の向きを基準として設定するリスナーを一度だけ実行 ★★★
                 window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
             }
             document.getElementById('gyro-button').style.display = 'none';
@@ -148,12 +151,10 @@ function requestDeviceOrientation() {
     }
 }
 
-// ★★★ 変更点: 最初のジャイロイベントで基準の向きを設定する関数 ★★★
 function setBaseOrientation(event) {
     if (!event.alpha) return;
-    updateDeviceQuaternion(event); // 現在の向きを計算
-    baseQuaternionInverse.copy(currentDeviceQuaternion).invert(); // その逆クォータニオンを基準として保存
-    // 通常の更新用リスナーを登録
+    updateDeviceQuaternion(event); 
+    baseQuaternionInverse.copy(currentDeviceQuaternion).invert();
     window.addEventListener('deviceorientation', onDeviceOrientation);
 }
 
@@ -163,8 +164,12 @@ function onDeviceOrientation(event) {
     updateDeviceQuaternion(event);
 }
 
-// ★★★ 変更点: デバイスの向きからクォータニオンを計算する処理を独立 ★★★
-const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2);
+// ★★★ 変更点: 画面の向きを取得する関数 ★★★
+function onScreenOrientationChange() {
+    screenOrientation = window.screen.orientation.angle || window.orientation || 0;
+    checkScreenOrientation(); // 縦横チェックもここで行う
+}
+
 const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
 
 function updateDeviceQuaternion(event) {
@@ -174,7 +179,11 @@ function updateDeviceQuaternion(event) {
 
     const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
     currentDeviceQuaternion.setFromEuler(euler);
+
+    // ★★★ 変更点: 動的に取得した画面の向きで補正 ★★★
+    const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
     currentDeviceQuaternion.multiply(screenTransform);
+    
     currentDeviceQuaternion.multiply(worldTransform);
 
     // デバッグ表示
@@ -187,7 +196,9 @@ function updateDeviceQuaternion(event) {
 }
 
 function checkScreenOrientation() {
-    if (window.innerHeight > window.innerWidth) {
+    // window.innerWidth/Height は orientationchange イベント内では古いことがあるため、screen を見る
+    const isPortrait = screen.availHeight > screen.availWidth;
+    if (isPortrait) {
         orientationWarning.style.display = 'flex';
     } else {
         orientationWarning.style.display = 'none';
@@ -269,7 +280,6 @@ function updatePlayer(deltaTime) {
     const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
 
     if (gyroActive) {
-        // ★★★ 変更点: 基準からの相対回転を計算 ★★★
         const relativeGyroQuaternion = currentDeviceQuaternion.clone().multiply(baseQuaternionInverse);
         player.pitchObject.quaternion.copy(touchQuaternion).multiply(relativeGyroQuaternion);
     } else {
