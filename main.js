@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 let scene, camera, renderer, clock;
-let floor, cube;
+let floor, testObject; // 変数名をcubeからtestObjectに変更
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
 let screenOrientation = 0; // 画面の向きを保存する変数
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
@@ -74,12 +74,16 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // 3Dモデルの代わりとなるキューブ
-    const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
-    const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-    cube = new THREE.Mesh(boxGeometry, boxMaterial);
-    cube.position.set(0, 1, -10);
-    scene.add(cube);
+    // 3Dモデルの代わりとなる円錐
+    const coneRadius = 1;
+    const coneHeight = 2;
+    const coneGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32); // (半径, 高さ, 円周の分割数)
+    const coneMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+    testObject = new THREE.Mesh(coneGeometry, coneMaterial);
+    
+    // 円錐の底面が地面(y=0)に接するように、位置を高さの半分だけ上に設定
+    testObject.position.set(0, coneHeight / 2, -10); 
+    scene.add(testObject);
     
     // イベントリスナーの登録
     setupEventListeners();
