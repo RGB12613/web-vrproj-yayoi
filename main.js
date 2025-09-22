@@ -1,23 +1,21 @@
-import * as THREE from 'three';
-// DeviceOrientationControlsをアドオンからインポート
-import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
+// ★★★ 変更点: ライブラリを完全なURLで直接インポート ★★★
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { DeviceOrientationControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v2.8'; // バージョン番号を更新
+const VERSION = 'v3.0 - Stable'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
 let debugMonitor;
 let orientationWarning;
-let controls; // Three.jsのControlsを格納する変数
+let controls;
 
-// プレイヤー（カメラ）の状態
 const player = {
     speed: 5.0,
     velocity: new THREE.Vector3(),
     direction: new THREE.Vector3(),
 };
 
-// 入力状態
 const input = {
     joystick: {
         active: false,
@@ -62,14 +60,13 @@ function init() {
     scene.add(testObject);
 
     controls = new DeviceOrientationControls(camera);
-
-    // ★★★ 変更点: HTMLからUI要素を取得するように変更 ★★★
+    
     debugMonitor = document.getElementById('debug-monitor');
     orientationWarning = document.getElementById('orientation-warning');
     
-    updateDebugMonitor(); // 初期表示
+    updateDebugMonitor();
     setupEventListeners();
-    checkScreenOrientation(); // 初回チェック
+    checkScreenOrientation();
     animate();
 }
 
@@ -78,10 +75,8 @@ function updateDebugMonitor() {
     debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls`;
 }
 
-
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
-    // ★★★ 変更点: orientationchangeイベントを削除し、resizeイベントに統合 ★★★
     window.addEventListener('resize', onWindowResize);
     
     const joystickContainer = document.getElementById('joystick-container');
@@ -89,13 +84,11 @@ function setupEventListeners() {
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
 
-    // ボタンの処理をControlsの接続に変更
     document.getElementById('gyro-button').addEventListener('click', () => {
         controls.connect();
         document.getElementById('gyro-button').style.display = 'none';
     });
 }
-
 
 // --- 各種イベントハンドラ ---
 function checkScreenOrientation() {
@@ -110,10 +103,10 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    checkScreenOrientation(); // 画面リサイズ時に向きもチェック
+    checkScreenOrientation();
 }
 
-// --- ジョイスティック操作 (変更なし) ---
+// --- ジョイスティック操作 ---
 function onJoystickStart(event) {
     event.preventDefault();
     input.joystick.active = true;
@@ -142,39 +135,29 @@ function onJoystickEnd() {
     input.joystick.y = 0;
 }
 
-
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
-    
-    // コントローラーの状態を更新
     controls.update();
-    
     updatePlayer(deltaTime);
     renderer.render(scene, camera);
 }
 
 // --- プレイヤーの移動更新 ---
 function updatePlayer(deltaTime) {
-    // 移動ベクトルの計算
     const moveDirection = new THREE.Vector3(input.joystick.x, 0, input.joystick.y);
-    
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
         camera.getWorldQuaternion(moveQuaternion);
-
-        // 上下を向いた際に移動方向がおかしくならないよう、X軸とZ軸の回転をリセット
         const euler = new THREE.Euler().setFromQuaternion(moveQuaternion, 'YXZ');
         euler.x = 0;
         euler.z = 0;
         moveQuaternion.setFromEuler(euler);
-
         player.direction.copy(moveDirection).applyQuaternion(moveQuaternion).normalize();
     } else {
         player.direction.set(0, 0, 0);
     }
-    
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
     camera.position.add(player.velocity);
 }
