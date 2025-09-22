@@ -4,6 +4,7 @@ let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
 let debugMonitor; // デバッグ情報を表示するDOM要素
+let orientationWarning; // 画面の向きに関する警告DOM要素
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 // プレイヤー（カメラ）の状態
@@ -85,17 +86,21 @@ function init() {
     testObject.position.set(0, coneHeight / 2, -10); 
     scene.add(testObject);
 
-    // デバッグモニターの作成
+    // UI要素のセットアップ
     setupDebugMonitor();
+    setupOrientationWarning();
     
     // イベントリスナーの登録
     setupEventListeners();
+
+    // 初回の画面向きチェック
+    checkScreenOrientation();
 
     // アニメーションループ開始
     animate();
 }
 
-// --- デバッグモニターのセットアップ ---
+// --- UI要素のセットアップ ---
 function setupDebugMonitor() {
     debugMonitor = document.createElement('div');
     debugMonitor.id = 'debug-monitor';
@@ -111,9 +116,29 @@ function setupDebugMonitor() {
     document.body.appendChild(debugMonitor);
 }
 
+function setupOrientationWarning() {
+    orientationWarning = document.createElement('div');
+    orientationWarning.id = 'orientation-warning';
+    orientationWarning.style.position = 'fixed';
+    orientationWarning.style.top = '0';
+    orientationWarning.style.left = '0';
+    orientationWarning.style.width = '100%';
+    orientationWarning.style.height = '100%';
+    orientationWarning.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    orientationWarning.style.color = 'white';
+    orientationWarning.style.display = 'none'; // 最初は非表示
+    orientationWarning.style.justifyContent = 'center';
+    orientationWarning.style.alignItems = 'center';
+    orientationWarning.style.fontSize = '24px';
+    orientationWarning.style.zIndex = '200';
+    orientationWarning.innerHTML = '画面を横にしてください';
+    document.body.appendChild(orientationWarning);
+}
+
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
+    window.addEventListener('orientationchange', checkScreenOrientation);
     
     // ジョイスティック
     const joystickContainer = document.getElementById('joystick-container');
@@ -153,11 +178,20 @@ function requestDeviceOrientation() {
 }
 
 // --- 各種イベントハンドラ ---
+function checkScreenOrientation() {
+    if (window.innerHeight > window.innerWidth) {
+        orientationWarning.style.display = 'flex';
+    } else {
+        orientationWarning.style.display = 'none';
+    }
+}
+
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    checkScreenOrientation(); // リサイズ時にもチェック
 }
 
 // ジョイスティック操作
@@ -281,11 +315,11 @@ function updatePlayer(deltaTime) {
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
         const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
-        // ★★★ 変更点: ヨー(alpha)で上下(X軸回転)、ピッチ(beta)で左右(Y軸回転)を操作するように軸を入れ替え ★★★
+        // ★★★ 変更点: ロール(gamma)で上下(X軸回転)、ヨー(alpha)で左右(Y軸回転)を操作するように軸を入れ替え ★★★
         const euler = new THREE.Euler(
-            THREE.MathUtils.degToRad(deltaAlpha), // 視点の上下 (Pitch) を、デバイスのヨー (alpha) で操作
-            THREE.MathUtils.degToRad(deltaBeta),  // 視点の左右 (Yaw) を、デバイスのピッチ (beta) で操作
-            -THREE.MathUtils.degToRad(deltaGamma),// ロールは変更なし
+            THREE.MathUtils.degToRad(deltaGamma), // 視点の上下 (Pitch) を、デバイスのロール (gamma) で操作
+            THREE.MathUtils.degToRad(deltaAlpha), // 視点の左右 (Yaw) を、デバイスのヨー (alpha) で操作
+            -THREE.MathUtils.degToRad(deltaBeta), // 視点のロールを、デバイスのピッチ (beta) で操作
             'YXZ'
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
