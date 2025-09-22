@@ -1,8 +1,9 @@
 // ★★★ 変更点: 安定して動作するCDNのURLに修正 ★★★
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { DeviceOrientationControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/DeviceOrientationControls.js';
+// ★★★ 変更点: ローカルのファイルからDeviceOrientationControlsをインポート ★★★
+import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = 'v3.1 - Stable'; // バージョン番号を更新
+const VERSION = 'v4.0 - Local Controls'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -72,7 +73,7 @@ function init() {
 
 // --- UI要素の更新 ---
 function updateDebugMonitor() {
-    debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls`;
+    debugMonitor.innerHTML = `Version: ${VERSION}<br>API: DeviceOrientationControls (Local)`;
 }
 
 // --- イベントリスナーの設定 ---
@@ -85,7 +86,7 @@ function setupEventListeners() {
     joystickContainer.addEventListener('touchend', onJoystickEnd);
 
     document.getElementById('gyro-button').addEventListener('click', () => {
-        controls.connect();
+        // .connect()はコンストラクタで自動的に呼ばれるため、ここでは不要
         document.getElementById('gyro-button').style.display = 'none';
     });
 }
