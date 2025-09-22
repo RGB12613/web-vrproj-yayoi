@@ -45,12 +45,14 @@ class DeviceOrientationControls extends EventDispatcher {
         };
 
 		const setObjectQuaternion = function (quaternion, alpha, beta, gamma, orient) {
-			_euler.set(beta, alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
+			// ★★★ 変更点: ジャイロのヨー(左右)方向を反転させるため、alphaを-alphaに変更 ★★★
+			_euler.set(beta, -alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
 			quaternion.setFromEuler(_euler); // orient the device
 			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
 			quaternion.multiply(_q0.setFromAxisAngle(_zee, - orient)); // adjust for screen orientation
 
-            const touchRotationYaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), scope.touchYaw);
+			// ★★★ 変更点: タッチ操作のヨー(左右)方向を反転させるため、-scope.touchYawに変更 ★★★
+            const touchRotationYaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -scope.touchYaw);
             const touchRotationPitch = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), scope.touchPitch);
             quaternion.multiply(touchRotationYaw).multiply(touchRotationPitch);
 		};
