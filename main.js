@@ -3,7 +3,6 @@ import * as THREE from 'three';
 let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
-let screenOrientation = 0; // 画面の向きを保存する変数
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 // プレイヤー（カメラ）の状態
@@ -95,8 +94,6 @@ function init() {
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    window.addEventListener('orientationchange', onScreenOrientationChange);
-    onScreenOrientationChange(); // 初期値を設定
     
     // ジョイスティック
     const joystickContainer = document.getElementById('joystick-container');
@@ -136,10 +133,6 @@ function requestDeviceOrientation() {
 }
 
 // --- 各種イベントハンドラ ---
-
-function onScreenOrientationChange() {
-    screenOrientation = window.screen.orientation.angle || window.orientation || 0;
-}
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -267,9 +260,10 @@ function updatePlayer(deltaTime) {
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
 
-        // 画面の向きに合わせてジャイロの回転を補正
-        const screenCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, -THREE.MathUtils.degToRad(screenOrientation));
-        gyroQuaternion.premultiply(screenCorrection);
+        // 横画面（左が上）を前提とした固定の補正をかける
+        const landscapeCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, -Math.PI / 2); // -90度回転
+        gyroQuaternion.premultiply(landscapeCorrection);
+
 
         // --- タッチによる回転計算 ---
         const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
