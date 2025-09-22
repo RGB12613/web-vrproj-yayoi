@@ -22,13 +22,13 @@ canvas {
     pointer-events: auto;
 }
 
-/* ★★★ 変更点: Flexboxの配置方法をより堅牢に修正 ★★★ */
+/* ★★★ 変更点: Flexboxの配置方向を修正 ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 20px;
     bottom: 20px;
     display: flex;
-    flex-direction: column-reverse; /* 下から上に要素を並べる */
+    flex-direction: column; /* 上から下に要素を並べる */
     align-items: center;
     gap: 15px;
 }
@@ -51,9 +51,10 @@ canvas {
     transition: transform 0.1s;
 }
 
+/* ★★★ 変更点: ボタンを縦並びに修正 ★★★ */
 #vertical-controls {
     display: flex;
-    flex-direction: row; /* 上下ボタンは横並びにする */
+    flex-direction: column; /* 上下ボタンを縦に並べる */
     gap: 10px;
 }
 
