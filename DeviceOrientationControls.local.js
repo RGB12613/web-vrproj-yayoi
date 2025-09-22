@@ -2,6 +2,7 @@
 // https://github.com/mrdoob/three.js/pull/22654/commits/23dc9e9918ecee21d4bbe5d038a8d16f82dc389f
 // And enhanced with cross-platform compatibility techniques from:
 // https://qiita.com/hoto17296/items/9b6111acf384e721cf04
+// And modified to support touch-based rotation offsets.
 
 import {
 	Euler,
@@ -15,6 +16,7 @@ const _zee = new Vector3( 0, 0, 1 );
 const _euler = new Euler();
 const _q0 = new Quaternion();
 const _q1 = new Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) ); // - PI/2 around the x-axis
+const _touchQuaternion = new Quaternion(); // ★★★ 変更点: タッチ回転用クォータニオンを追加 ★★★
 
 const _changeEvent = { type: 'change' };
 
@@ -36,10 +38,12 @@ class DeviceOrientationControls extends EventDispatcher {
 		this.object.rotation.reorder( 'YXZ' );
 
 		this.enabled = true;
-
 		this.deviceOrientation = {};
 		this.screenOrientation = 0;
 		this.alphaOffset = 0; // radians
+        
+        // ★★★ 変更点: タッチ操作による回転オフセットを保持するEuler角を追加 ★★★
+        this.touchEuler = new Euler( 0, 0, 0, 'YXZ' );
 
 		const onDeviceOrientationChangeEvent = function ( event ) {
 			scope.deviceOrientation = event;
@@ -49,33 +53,26 @@ class DeviceOrientationControls extends EventDispatcher {
 			scope.screenOrientation = window.orientation || 0;
 		};
         
-        // ★★★ 変更点: 初回起動時の向きを自動補正する処理 ★★★
         const onFirstDeviceOrientation = function ( event ) {
-            // iOSではwebkitCompassHeadingを優先し、それ以外はalphaを使用
             const alpha = event.webkitCompassHeading !== undefined ? event.webkitCompassHeading : event.alpha;
             if ( alpha !== null ) {
-                // 現在の方位を打ち消すオフセットを設定
                 scope.alphaOffset = - MathUtils.degToRad( alpha );
-                // このリスナーは初回のみ実行するため、ここで削除
                 window.removeEventListener( 'deviceorientation', onFirstDeviceOrientation );
             }
         };
 
 
 		const setObjectQuaternion = function ( quaternion, alpha, beta, gamma, orient ) {
-			_euler.set( beta, alpha, - gamma, 'YXZ' ); // 'ZXY' for the device, but 'YXZ' for us
-			quaternion.setFromEuler( _euler ); // orient the device
-			quaternion.multiply( _q1 ); // camera looks out the back of the device, not the top
-			quaternion.multiply( _q0.setFromAxisAngle( _zee, - orient ) ); // adjust for screen orientation
+			_euler.set( beta, alpha, - gamma, 'YXZ' ); 
+			quaternion.setFromEuler( _euler ); 
+			quaternion.multiply( _q1 ); 
+			quaternion.multiply( _q0.setFromAxisAngle( _zee, - orient ) );
 		};
 
 		this.connect = function () {
-			onScreenOrientationChangeEvent(); // run once on load
-            
-            // ★★★ 変更点: 初回補正用のリスナーを登録 ★★★
+			onScreenOrientationChangeEvent(); 
             window.addEventListener( 'deviceorientation', onFirstDeviceOrientation );
 
-			// iOS 13+
 			if ( window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function' ) {
 				window.DeviceOrientationEvent.requestPermission().then( function ( response ) {
 					if ( response == 'granted' ) {
@@ -93,7 +90,6 @@ class DeviceOrientationControls extends EventDispatcher {
 		};
 
 		this.disconnect = function () {
-            // ★★★ 変更点: 初回補正用リスナーも削除対象に追加 ★★★
             window.removeEventListener( 'deviceorientation', onFirstDeviceOrientation );
 			window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent );
 			window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
@@ -108,7 +104,14 @@ class DeviceOrientationControls extends EventDispatcher {
 				const beta = device.beta ? MathUtils.degToRad( device.beta ) : 0; // X'
 				const gamma = device.gamma ? MathUtils.degToRad( device.gamma ) : 0; // Y''
 				const orient = scope.screenOrientation ? MathUtils.degToRad( scope.screenOrientation ) : 0; // O
-				setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+				
+                // 1. ジャイロから基本の向きを設定
+                setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+                
+                // ★★★ 変更点: タッチによる回転を追加で合成 ★★★
+                _touchQuaternion.setFromEuler( scope.touchEuler );
+                scope.object.quaternion.multiply( _touchQuaternion );
+
 				if ( 8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
 					lastQuaternion.copy( scope.object.quaternion );
 					scope.dispatchEvent( _changeEvent );
@@ -119,9 +122,6 @@ class DeviceOrientationControls extends EventDispatcher {
 		this.dispose = function () {
 			scope.disconnect();
 		};
-
-        // ★★★ 変更点: コンストラクタでの自動接続を削除 ★★★
-		// this.connect();
 	}
 }
 

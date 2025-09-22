@@ -1,11 +1,11 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 
-const VERSION = 'v4.2 - UI Restore'; // バージョン番号を更新
+const VERSION = 'v4.3 - Touch Restore'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
-let versionDisplay; // 変数名を変更
+let versionDisplay;
 let orientationWarning;
 let controls;
 
@@ -21,6 +21,12 @@ const input = {
         x: 0,
         y: 0,
     },
+    // ★★★ 変更点: タッチ操作の状態を保持するオブジェクトを追加 ★★★
+    touch: {
+        active: false,
+        startX: 0,
+        startY: 0,
+    }
 };
 
 // --- 初期化処理 ---
@@ -60,7 +66,6 @@ function init() {
 
     controls = new DeviceOrientationControls(camera);
     
-    // ★★★ 変更点: UI要素を取得 ★★★
     versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
     
@@ -72,20 +77,23 @@ function init() {
 
 // --- UI要素の更新 ---
 function updateVersionDisplay() {
-    // ★★★ 変更点: バージョン表示のみに機能を限定 ★★★
     versionDisplay.innerHTML = `v${VERSION}`;
 }
 
 // --- イベントリスナーの設定 ---
 function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
-    // ★★★ 変更点: 画面回転時のイベントリスナーを再追加 ★★★
     window.addEventListener('orientationchange', checkScreenOrientation);
     
     const joystickContainer = document.getElementById('joystick-container');
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
+
+    // ★★★ 変更点: タッチによる視点操作のイベントリスナーを再実装 ★★★
+    window.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
 
     document.getElementById('gyro-button').addEventListener('click', () => {
         controls.connect();
@@ -95,7 +103,6 @@ function setupEventListeners() {
 
 // --- 各種イベントハンドラ ---
 function checkScreenOrientation() {
-    // ★★★ 変更点: 縦画面警告の表示ロジックを再実装 ★★★
     if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
     } else {
@@ -139,6 +146,41 @@ function onJoystickEnd() {
     input.joystick.y = 0;
 }
 
+// ★★★ 変更点: タッチによる視点操作のハンドラを再実装 ★★★
+function onTouchStart(event) {
+    if (event.target.closest('#joystick-container')) return;
+    
+    const touch = event.touches[0];
+    if (touch.clientX < window.innerWidth / 2) return;
+    
+    input.touch.active = true;
+    input.touch.startX = touch.clientX;
+    input.touch.startY = touch.clientY;
+}
+
+function onTouchMove(event) {
+    if (!input.touch.active) return;
+    
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - input.touch.startX;
+    const deltaY = touch.clientY - input.touch.startY;
+
+    // スワイプ量をDeviceOrientationControlsのtouchEulerに加算
+    controls.touchEuler.y -= deltaX * 0.002;
+    controls.touchEuler.x -= deltaY * 0.002;
+    
+    // 上下の回転範囲を制限 (±90度)
+    controls.touchEuler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchEuler.x));
+    
+    input.touch.startX = touch.clientX;
+    input.touch.startY = touch.clientY;
+}
+
+function onTouchEnd() {
+    input.touch.active = false;
+}
+
+
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
@@ -167,6 +209,5 @@ function updatePlayer(deltaTime) {
 }
 
 // --- 実行開始 ---
-// ★★★ 変更点: DOMが完全に読み込まれてから初期化処理を実行 ★★★
 window.addEventListener('DOMContentLoaded', init);
 
