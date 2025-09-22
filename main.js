@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const VERSION = 'v1.1'; // バージョン番号を更新
+
 let scene, camera, renderer, clock;
 let floor, testObject; // 変数名をcubeからtestObjectに変更
 let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
@@ -112,7 +114,7 @@ function setupDebugMonitor() {
     debugMonitor.style.color = 'white';
     debugMonitor.style.fontFamily = 'monospace';
     debugMonitor.style.zIndex = '100';
-    debugMonitor.innerHTML = 'ジャイロ待機中...';
+    debugMonitor.innerHTML = `Version: ${VERSION}<br>ジャイロ待機中...`;
     document.body.appendChild(debugMonitor);
 }
 
@@ -305,6 +307,7 @@ function updatePlayer(deltaTime) {
 
         // デバッグモニターの表示を更新
         debugMonitor.innerHTML = `
+            Version: ${VERSION}<br>
             Alpha (ヨー): ${currentOrientation.alpha.toFixed(2)}<br>
             Beta (ピッチ): ${currentOrientation.beta.toFixed(2)}<br>
             Gamma (ロール): ${(currentOrientation.gamma || 0).toFixed(2)}
@@ -315,19 +318,14 @@ function updatePlayer(deltaTime) {
         const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
         const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
         
-        // ★★★ 変更点: ロール(gamma)で上下(X軸回転)、ヨー(alpha)で左右(Y軸回転)を操作するように軸を入れ替え ★★★
+        // ★★★ 変更点: ジンバルロックを避けるため、安定した操作方法に変更 ★★★
         const euler = new THREE.Euler(
-            THREE.MathUtils.degToRad(deltaGamma), // 視点の上下 (Pitch) を、デバイスのロール (gamma) で操作
+            THREE.MathUtils.degToRad(deltaBeta),  // 視点の上下 (Pitch) を、デバイスのピッチ (beta) で操作
             THREE.MathUtils.degToRad(deltaAlpha), // 視点の左右 (Yaw) を、デバイスのヨー (alpha) で操作
-            -THREE.MathUtils.degToRad(deltaBeta), // 視点のロールを、デバイスのピッチ (beta) で操作
+            -THREE.MathUtils.degToRad(deltaGamma),// 視点のロールを、デバイスのロール (gamma) で操作
             'YXZ'
         );
         const gyroQuaternion = new THREE.Quaternion().setFromEuler(euler);
-
-        // ★★★ 変更点: 横画面（左が上）を前提とした固定の補正をかける回転値を修正 ★★★
-        // const landscapeCorrection = new THREE.Quaternion().setFromAxisAngle(Z_AXIS, Math.PI / 2); // -90度から+90度回転に変更
-        // gyroQuaternion.premultiply(landscapeCorrection);
-
 
         // --- タッチによる回転計算 ---
         const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
