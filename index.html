@@ -9,15 +9,18 @@
 <body>
     <!-- UI Elements -->
     <div id="ui-container">
-        <!-- ジョイスティック -->
-        <div id="joystick-container">
-            <div id="joystick-knob"></div>
-        </div>
-
-        <!-- 上下移動ボタン -->
-        <div id="vertical-controls">
-            <div class="vertical-button" id="up-button">▲</div>
-            <div class="vertical-button" id="down-button">▼</div>
+        
+        <!-- ★★★ 変更点: 左下のUIをまとめるコンテナを追加 ★★★ -->
+        <div id="bottom-left-controls">
+            <!-- 上下移動ボタン -->
+            <div id="vertical-controls">
+                <div class="vertical-button" id="up-button">▲</div>
+                <div class="vertical-button" id="down-button">▼</div>
+            </div>
+            <!-- ジョイスティック -->
+            <div id="joystick-container">
+                <div id="joystick-knob"></div>
+            </div>
         </div>
 
         <!-- ジャイロ有効化ボタン -->
@@ -46,7 +49,6 @@
                 <button id="close-modal-button">&times;</button>
             </div>
             <div class="modal-body">
-                <!-- ★★★ 変更点: 設定項目を追加 ★★★ -->
                 <div class="settings-item">
                     <button id="reset-view-button" class="modal-button">視点のリセット</button>
                 </div>
