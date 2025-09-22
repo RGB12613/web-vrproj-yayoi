@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v2.2'; // バージョン番号を更新
+const VERSION = 'v2.3'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -174,7 +174,7 @@ function updateDeviceQuaternion(event) {
     const beta = THREE.MathUtils.degToRad(event.beta);   // X axis / Pitch
     const gamma = THREE.MathUtils.degToRad(event.gamma); // Y axis / Roll
     
-    // ★★★ 変更点: 各軸の回転からクォータニオンを直接合成する方式に変更 ★★★
+    // 各軸の回転からクォータニオンを直接合成する方式
     // Three.jsの回転順序 'YXZ' に従い、各軸の回転クォータニオンを作成
     
     // 1. ヨー(alpha)でY軸周りの回転 (左右)
@@ -293,10 +293,13 @@ function updatePlayer(deltaTime) {
     // デバッグ表示ロジックを更新
     if (gyroActive && lastGyroEvent) {
         const cameraEuler = new THREE.Euler().setFromQuaternion(player.pitchObject.quaternion, 'YXZ');
+        const q = currentDeviceQuaternion; // ★★★ 変更点: 表示するクォータニオンを取得 ★★★
         const sensorDataHtml = `--- Device (Euler) ---<br>
             Alpha (ヨー): ${lastGyroEvent.alpha.toFixed(2)}<br>
             Beta (ピッチ): ${lastGyroEvent.beta.toFixed(2)}<br>
-            Gamma (ロール): ${(lastGyroEvent.gamma || 0).toFixed(2)}`;
+            Gamma (ロール): ${(lastGyroEvent.gamma || 0).toFixed(2)}<br>
+            --- Device (Quaternion) ---<br>
+            X:${q.x.toFixed(2)}, Y:${q.y.toFixed(2)}, Z:${q.z.toFixed(2)}, W:${q.w.toFixed(2)}`; // ★★★ 変更点: クォータニオンの値を表示 ★★★
         
         debugMonitor.innerHTML = `
             Version: ${VERSION}<br>
