@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.7'; // バージョン番号を更新
+const VERSION = 'v1.8'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -12,7 +12,7 @@ let baseQuaternionInverse = new THREE.Quaternion();
 const currentDeviceQuaternion = new THREE.Quaternion(); 
 
 let screenOrientation = 0;
-let lastGyroEvent = null; // ★★★ 変更点: ジャイロの最新情報を保持する変数 ★★★
+let lastGyroEvent = null; // ジャイロの最新情報を保持する変数
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -160,7 +160,7 @@ function setBaseOrientation(event) {
 // --- 各種イベントハンドラ ---
 function onDeviceOrientation(event) {
     if (!event.alpha) return;
-    lastGyroEvent = event; // ★★★ 変更点: 最新のイベント情報を保存 ★★★
+    lastGyroEvent = event;
     updateDeviceQuaternion(event);
 }
 
@@ -177,8 +177,8 @@ function updateDeviceQuaternion(event) {
     const beta = THREE.MathUtils.degToRad(event.beta);   // X
     const gamma = THREE.MathUtils.degToRad(event.gamma); // Y
 
-    // ★★★ 変更点: カメラのピッチとロールの入力を入れ替え ★★★
-    const euler = new THREE.Euler(gamma, alpha, -beta, 'YXZ');
+    // ★★★ 変更点: 上下(ピッチ)の入力を反転 (-gamma) ★★★
+    const euler = new THREE.Euler(-gamma, alpha, -beta, 'YXZ');
     currentDeviceQuaternion.setFromEuler(euler);
 
     const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
@@ -276,7 +276,7 @@ function updatePlayer(deltaTime) {
         player.pitchObject.quaternion.copy(touchQuaternion);
     }
 
-    // ★★★ 変更点: デバッグ表示ロジックを更新 ★★★
+    // デバッグ表示ロジックを更新
     if (gyroActive && lastGyroEvent) {
         const cameraEuler = new THREE.Euler().setFromQuaternion(player.pitchObject.quaternion, 'YXZ');
         debugMonitor.innerHTML = `
