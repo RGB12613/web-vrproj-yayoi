@@ -1,13 +1,16 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.3'; // バージョン番号を更新
+const VERSION = 'v1.4'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
-let floor, testObject; // 変数名をcubeからtestObjectに変更
-let deviceOrientationBase = null; // ジャイロの基準点を保存する変数
-let debugMonitor; // デバッグ情報を表示するDOM要素
-let orientationWarning; // 画面の向きに関する警告DOM要素
-const Z_AXIS = new THREE.Vector3(0, 0, 1);
+let floor, testObject;
+let debugMonitor;
+let orientationWarning;
+
+// ★★★ 変更点: ジャイロの回転を管理する変数を追加 ★★★
+let gyroActive = false;
+let baseQuaternionInverse = new THREE.Quaternion(); // ジャイロ有効化時の向きの逆クォータニオン
+const currentDeviceQuaternion = new THREE.Quaternion(); // 現在のデバイスの向き
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -15,15 +18,11 @@ const player = {
     velocity: new THREE.Vector3(),
     direction: new THREE.Vector3(),
     rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
-    pitchObject: new THREE.Object3D(), // 垂直方向の視点移動を管理
+    pitchObject: new THREE.Object3D(),
 };
 
 // 入力状態
 const controls = {
-    moveForward: false,
-    moveBackward: false,
-    moveLeft: false,
-    moveRight: false,
     joystick: {
         active: false,
         x: 0,
@@ -33,72 +32,49 @@ const controls = {
         active: false,
         startX: 0,
         startY: 0,
-        x: 0,
-        y: 0,
     },
-    gyro: {
-        active: false,
-        deviceOrientation: {},
-    }
 };
 
 // --- 初期化処理 ---
 function init() {
-    // クロック
     clock = new THREE.Clock();
-
-    // シーン
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // 空の色
+    scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.Fog(0x87ceeb, 0, 75);
 
-    // レンダラー
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    // カメラ
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     player.pitchObject.add(camera);
     scene.add(player.pitchObject);
 
-    // ライト
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(1, 1, 0).normalize();
     scene.add(directionalLight);
 
-    // 地面
     const floorGeometry = new THREE.PlaneGeometry(200, 200);
     const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x999999 });
     floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // 3Dモデルの代わりとなる円錐
     const coneRadius = 1;
     const coneHeight = 2;
-    const coneGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32); // (半径, 高さ, 円周の分割数)
+    const coneGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
     const coneMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
     testObject = new THREE.Mesh(coneGeometry, coneMaterial);
-    
-    // 円錐の底面が地面(y=0)に接するように、位置を高さの半分だけ上に設定
-    testObject.position.set(0, coneHeight / 2, -10); 
+    testObject.position.set(0, coneHeight / 2, -10);
     scene.add(testObject);
 
-    // UI要素のセットアップ
     setupDebugMonitor();
     setupOrientationWarning();
-    
-    // イベントリスナーの登録
     setupEventListeners();
-
-    // 初回の画面向きチェック
     checkScreenOrientation();
-
-    // アニメーションループ開始
     animate();
 }
 
@@ -128,7 +104,7 @@ function setupOrientationWarning() {
     orientationWarning.style.height = '100%';
     orientationWarning.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
     orientationWarning.style.color = 'white';
-    orientationWarning.style.display = 'none'; // 最初は非表示
+    orientationWarning.style.display = 'none';
     orientationWarning.style.justifyContent = 'center';
     orientationWarning.style.alignItems = 'center';
     orientationWarning.style.fontSize = '24px';
@@ -142,44 +118,74 @@ function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('orientationchange', checkScreenOrientation);
     
-    // ジョイスティック
     const joystickContainer = document.getElementById('joystick-container');
-    const joystickKnob = document.getElementById('joystick-knob');
-    
     joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
     joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
     joystickContainer.addEventListener('touchend', onJoystickEnd);
     
-    // 画面右側のタッチによる視点移動
     window.addEventListener('touchstart', onTouchStart, { passive: false });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
 
-    // ジャイロ有効化ボタン
-    const gyroButton = document.getElementById('gyro-button');
-    gyroButton.addEventListener('click', requestDeviceOrientation);
+    document.getElementById('gyro-button').addEventListener('click', requestDeviceOrientation);
 }
 
 // --- ジャイロセンサーの有効化 ---
 function requestDeviceOrientation() {
-    // iOS 13+ ではユーザーの許可が必要
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission().then(permissionState => {
             if (permissionState === 'granted') {
-                window.addEventListener('deviceorientation', onDeviceOrientation);
-                controls.gyro.active = true;
+                gyroActive = true;
+                // ★★★ 変更点: 最初の向きを基準として設定するリスナーを一度だけ実行 ★★★
+                window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
             }
             document.getElementById('gyro-button').style.display = 'none';
         }).catch(console.error);
     } else {
-        // その他のデバイス（Androidなど）
-        window.addEventListener('deviceorientation', onDeviceOrientation);
-        controls.gyro.active = true;
+        gyroActive = true;
+        window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
         document.getElementById('gyro-button').style.display = 'none';
     }
 }
 
+// ★★★ 変更点: 最初のジャイロイベントで基準の向きを設定する関数 ★★★
+function setBaseOrientation(event) {
+    if (!event.alpha) return;
+    updateDeviceQuaternion(event); // 現在の向きを計算
+    baseQuaternionInverse.copy(currentDeviceQuaternion).invert(); // その逆クォータニオンを基準として保存
+    // 通常の更新用リスナーを登録
+    window.addEventListener('deviceorientation', onDeviceOrientation);
+}
+
 // --- 各種イベントハンドラ ---
+function onDeviceOrientation(event) {
+    if (!event.alpha) return;
+    updateDeviceQuaternion(event);
+}
+
+// ★★★ 変更点: デバイスの向きからクォータニオンを計算する処理を独立 ★★★
+const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2);
+const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
+
+function updateDeviceQuaternion(event) {
+    const alpha = THREE.MathUtils.degToRad(event.alpha); // Z
+    const beta = THREE.MathUtils.degToRad(event.beta);   // X
+    const gamma = THREE.MathUtils.degToRad(event.gamma); // Y
+
+    const euler = new THREE.Euler(beta, alpha, -gamma, 'YXZ');
+    currentDeviceQuaternion.setFromEuler(euler);
+    currentDeviceQuaternion.multiply(screenTransform);
+    currentDeviceQuaternion.multiply(worldTransform);
+
+    // デバッグ表示
+    debugMonitor.innerHTML = `
+        Version: ${VERSION}<br>
+        Alpha (ヨー): ${event.alpha.toFixed(2)}<br>
+        Beta (ピッチ): ${event.beta.toFixed(2)}<br>
+        Gamma (ロール): ${(event.gamma || 0).toFixed(2)}
+    `;
+}
+
 function checkScreenOrientation() {
     if (window.innerHeight > window.innerWidth) {
         orientationWarning.style.display = 'flex';
@@ -188,16 +194,14 @@ function checkScreenOrientation() {
     }
 }
 
-
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    checkScreenOrientation(); // リサイズ時にもチェック
+    checkScreenOrientation();
 }
 
-// ジョイスティック操作
-// ... (変更なし) ...
+// --- ジョイスティックとタッチ操作 (変更なし) ---
 function onJoystickStart(event) {
     event.preventDefault();
     controls.joystick.active = true;
@@ -206,22 +210,15 @@ function onJoystickStart(event) {
 function onJoystickMove(event) {
     event.preventDefault();
     if (!controls.joystick.active) return;
-    
     const rect = event.currentTarget.getBoundingClientRect();
     const touch = event.touches[0];
-    
     const x = (touch.clientX - rect.left - rect.width / 2);
     const y = (touch.clientY - rect.top - rect.height / 2);
-    
     const distance = Math.sqrt(x*x + y*y);
     const maxDistance = rect.width / 2;
-
     const clampedX = (distance > maxDistance) ? x / distance * maxDistance : x;
     const clampedY = (distance > maxDistance) ? y / distance * maxDistance : y;
-
-    const knob = document.getElementById('joystick-knob');
-    knob.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-
+    document.getElementById('joystick-knob').style.transform = `translate(${clampedX}px, ${clampedY}px)`;
     controls.joystick.x = clampedX / maxDistance;
     controls.joystick.y = clampedY / maxDistance;
 }
@@ -233,16 +230,10 @@ function onJoystickEnd() {
     controls.joystick.y = 0;
 }
 
-// 画面タッチによる視点移動
-// ... (変更なし) ...
 function onTouchStart(event) {
-    // ジョイスティック上でのタッチは無視
     if (event.target.closest('#joystick-container')) return;
-    
     const touch = event.touches[0];
-    // 画面の左半分でのタッチは無視
     if (touch.clientX < window.innerWidth / 2) return;
-    
     controls.touch.active = true;
     controls.touch.startX = touch.clientX;
     controls.touch.startY = touch.clientY;
@@ -250,18 +241,12 @@ function onTouchStart(event) {
 
 function onTouchMove(event) {
     if (!controls.touch.active) return;
-    
     const touch = event.touches[0];
     const deltaX = touch.clientX - controls.touch.startX;
     const deltaY = touch.clientY - controls.touch.startY;
-
-    // 回転量を計算
     player.rotation.y -= deltaX * 0.002;
     player.rotation.x -= deltaY * 0.002;
-    
-    // 垂直方向の回転制限
     player.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.rotation.x));
-    
     controls.touch.startX = touch.clientX;
     controls.touch.startY = touch.clientY;
 }
@@ -270,115 +255,44 @@ function onTouchEnd() {
     controls.touch.active = false;
 }
 
-// ジャイロセンサー
-function onDeviceOrientation(event) {
-    if (!event.alpha) return;
-
-    // 初回のジャイロデータで基準となる向きを記録
-    if (!deviceOrientationBase) {
-        deviceOrientationBase = {
-            alpha: event.alpha,
-            beta: event.beta,
-            gamma: event.gamma,
-        };
-    }
-    controls.gyro.deviceOrientation = event;
-}
-
-
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
-
     const deltaTime = clock.getDelta();
-    
     updatePlayer(deltaTime);
-    
     renderer.render(scene, camera);
 }
 
 // --- プレイヤー（カメラ）の状態更新 ---
 function updatePlayer(deltaTime) {
     // 1. 視点（カメラの向き）の更新
-    // ジャイロが有効な場合
-    if (controls.gyro.active && controls.gyro.deviceOrientation.alpha && deviceOrientationBase) {
-        // --- ジャイロによる回転計算 ---
-        const currentOrientation = controls.gyro.deviceOrientation;
+    const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
 
-        // デバッグモニターの表示を更新
-        debugMonitor.innerHTML = `
-            Version: ${VERSION}<br>
-            Alpha (ヨー): ${currentOrientation.alpha.toFixed(2)}<br>
-            Beta (ピッチ): ${currentOrientation.beta.toFixed(2)}<br>
-            Gamma (ロール): ${(currentOrientation.gamma || 0).toFixed(2)}
-        `;
-        
-        // 基準からの差分を計算
-        const deltaAlpha = currentOrientation.alpha - deviceOrientationBase.alpha;
-        const deltaBeta = currentOrientation.beta - deviceOrientationBase.beta;
-        const deltaGamma = (currentOrientation.gamma || 0) - (deviceOrientationBase.gamma || 0);
-        
-        // ★★★ 変更点: オイラー角を直接使わず、各軸の回転からクォータニオンを合成 ★★★
-        // Three.jsの回転順序 'YXZ' に従い、Y軸、X軸、Z軸の順で回転を適用します。
-        
-        // 1. ヨー(alpha)でY軸周りの回転（左右）
-        const qYaw = new THREE.Quaternion().setFromAxisAngle(
-            new THREE.Vector3(0, 1, 0), 
-            THREE.MathUtils.degToRad(deltaAlpha)
-        );
-
-        // 2. ロール(gamma)でX軸周りの回転（上下）
-        const qPitch = new THREE.Quaternion().setFromAxisAngle(
-            new THREE.Vector3(1, 0, 0), 
-            THREE.MathUtils.degToRad(deltaGamma)
-        );
-
-        // 3. ピッチ(beta)でZ軸周りの回転（傾き）
-        const qRoll = new THREE.Quaternion().setFromAxisAngle(
-            new THREE.Vector3(0, 0, 1), 
-            -THREE.MathUtils.degToRad(deltaBeta)
-        );
-
-        // クォータニオンを合成。Y -> X -> Z の順で掛け合わせる。
-        const gyroQuaternion = new THREE.Quaternion().multiply(qYaw).multiply(qPitch).multiply(qRoll);
-
-
-        // --- タッチによる回転計算 ---
-        const touchQuaternion = new THREE.Quaternion().setFromEuler(player.rotation);
-
-        // --- 合成と適用 ---
-        // タッチ操作で決めた向きを基準に、ジャイロの差分を適用
-        player.pitchObject.quaternion.copy(touchQuaternion).multiply(gyroQuaternion);
-
+    if (gyroActive) {
+        // ★★★ 変更点: 基準からの相対回転を計算 ★★★
+        const relativeGyroQuaternion = currentDeviceQuaternion.clone().multiply(baseQuaternionInverse);
+        player.pitchObject.quaternion.copy(touchQuaternion).multiply(relativeGyroQuaternion);
     } else {
-        // ジャイロが無効な場合はタッチ操作のみ
-        player.pitchObject.rotation.x = player.rotation.x;
-        player.pitchObject.rotation.y = player.rotation.y;
+        player.pitchObject.quaternion.copy(touchQuaternion);
     }
 
-    // 2. 移動方向の計算 (前後を反転)
-    const moveDirection = new THREE.Vector3(controls.joystick.x, 0, controls.joystick.y).normalize();
-
-    // 3. 移動ベクトルの計算
-    if (moveDirection.length() > 0) {
-        // カメラのY軸回転（左右の向き）のみを移動に反映させる
+    // 2. 移動ベクトルの計算
+    const moveDirection = new THREE.Vector3(controls.joystick.x, 0, controls.joystick.y);
+    if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
         player.pitchObject.getWorldQuaternion(moveQuaternion);
 
-        // 上下を向いた際に移動方向がおかしくならないよう、X軸とZ軸の回転をリセット
         const euler = new THREE.Euler().setFromQuaternion(moveQuaternion, 'YXZ');
         euler.x = 0;
         euler.z = 0;
         moveQuaternion.setFromEuler(euler);
 
-        player.direction.copy(moveDirection).applyQuaternion(moveQuaternion);
+        player.direction.copy(moveDirection).applyQuaternion(moveQuaternion).normalize();
     } else {
         player.direction.set(0, 0, 0);
     }
     
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
-
-    // 4. プレイヤーの位置を更新
     player.pitchObject.position.add(player.velocity);
 }
 
