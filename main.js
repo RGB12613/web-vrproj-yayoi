@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const VERSION = 'v1.9'; // バージョン番号を更新
+const VERSION = 'v2.2'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -12,7 +12,7 @@ let baseQuaternionInverse = new THREE.Quaternion();
 const currentDeviceQuaternion = new THREE.Quaternion(); 
 
 let screenOrientation = 0;
-let lastSensorQuaternion = null; // ★★★ 変更点: Sensor APIの生クォータニオンを保持 ★★★
+let lastGyroEvent = null;
 
 // プレイヤー（カメラ）の状態
 const player = {
@@ -133,75 +133,65 @@ function setupEventListeners() {
     document.getElementById('gyro-button').addEventListener('click', requestDeviceOrientation);
 }
 
-// --- ジャイロセンサーの有効化 (OrientationSensor API) ---
+// --- ジャイロセンサーの有効化 (DeviceOrientationEvent のみ) ---
 function requestDeviceOrientation() {
-    if ('AbsoluteOrientationSensor' in window) {
-        // Permissions API を使って許可を求める（よりモダンな方法）
-        Promise.all([
-            navigator.permissions.query({ name: 'accelerometer' }),
-            navigator.permissions.query({ name: 'gyroscope' }),
-            navigator.permissions.query({ name: 'magnetometer' })
-        ]).then(results => {
-            if (results.some(result => result.state === 'denied')) {
-                console.error('Permission to access sensor was denied.');
-                debugMonitor.innerHTML += '<br>Sensor permission denied.';
-                document.getElementById('gyro-button').style.display = 'none';
-                return;
+    document.getElementById('gyro-button').style.display = 'none';
+    
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(permissionState => {
+            if (permissionState === 'granted') {
+                window.addEventListener('deviceorientation', onDeviceOrientation);
+                // 許可された後、最初のイベントで基準を設定
+                window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
             }
-            initOrientationSensor();
-        });
+        }).catch(console.error);
     } else {
-        console.warn('AbsoluteOrientationSensor is not supported by this browser.');
-        debugMonitor.innerHTML += '<br>OrientationSensor not supported.';
-        document.getElementById('gyro-button').style.display = 'none';
+        window.addEventListener('deviceorientation', onDeviceOrientation);
+        // その他のブラウザでは、最初のイベントで基準を設定
+        window.addEventListener('deviceorientation', setBaseOrientation, { once: true });
     }
 }
 
-function initOrientationSensor() {
-    try {
-        const sensor = new AbsoluteOrientationSensor({ frequency: 60 });
-        let isFirstReading = true;
+// 基準となる向きを設定
+function setBaseOrientation(event) {
+    if (!event.alpha) return;
+    updateDeviceQuaternion(event);
+    baseQuaternionInverse.copy(currentDeviceQuaternion).invert();
+}
 
-        const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
+// ジャイロセンサーの情報を更新
+function onDeviceOrientation(event) {
+    if (!event.alpha) return;
+    gyroActive = true;
+    lastGyroEvent = event;
+    updateDeviceQuaternion(event);
+}
 
-        sensor.addEventListener('reading', () => {
-            gyroActive = true;
-            lastSensorQuaternion = sensor.quaternion;
+// デバイスの向きからクォータニオンを計算
+function updateDeviceQuaternion(event) {
+    const worldTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(-1, 0, 0), Math.PI / 2);
+    const alpha = THREE.MathUtils.degToRad(event.alpha); // Z axis / Yaw
+    const beta = THREE.MathUtils.degToRad(event.beta);   // X axis / Pitch
+    const gamma = THREE.MathUtils.degToRad(event.gamma); // Y axis / Roll
+    
+    // ★★★ 変更点: 各軸の回転からクォータニオンを直接合成する方式に変更 ★★★
+    // Three.jsの回転順序 'YXZ' に従い、各軸の回転クォータニオンを作成
+    
+    // 1. ヨー(alpha)でY軸周りの回転 (左右)
+    const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), alpha);
 
-            // 1. センサーからクォータニオンを取得
-            let sensorQuaternion = new THREE.Quaternion().fromArray(sensor.quaternion);
-            
-            // 2. 画面の向きに合わせて補正
-            const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
-            sensorQuaternion.multiply(screenTransform);
+    // 2. ピッチ(今回は-gamma)でX軸周りの回転 (上下)
+    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -gamma);
 
-            // 3. Three.jsの座標系に合わせる
-            sensorQuaternion.multiply(worldTransform);
+    // 3. ロール(今回は-beta)でZ軸周りの回転 (傾き)
+    const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -beta);
 
-            currentDeviceQuaternion.copy(sensorQuaternion);
-
-            // 最初の読み取りで基準の向きを設定
-            if (isFirstReading) {
-                baseQuaternionInverse.copy(currentDeviceQuaternion).invert();
-                isFirstReading = false;
-            }
-        });
-
-        sensor.addEventListener('error', (event) => {
-            if (event.error.name === 'NotAllowedError') {
-                console.error('Permission to access sensor was denied.');
-            } else {
-                console.error('Sensor error:', event.error.name, event.error.message);
-            }
-        });
-
-        sensor.start();
-        document.getElementById('gyro-button').style.display = 'none';
-
-    } catch (error) {
-        console.error('Failed to initialize the sensor:', error);
-        debugMonitor.innerHTML += '<br>Sensor init failed.';
-    }
+    // クォータニオンを Y -> X -> Z の順で掛け合わせて合成
+    currentDeviceQuaternion.copy(qYaw).multiply(qPitch).multiply(qRoll);
+    
+    const screenTransform = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -THREE.MathUtils.degToRad(screenOrientation));
+    currentDeviceQuaternion.multiply(screenTransform);
+    currentDeviceQuaternion.multiply(worldTransform);
 }
 
 
@@ -301,14 +291,17 @@ function updatePlayer(deltaTime) {
     }
 
     // デバッグ表示ロジックを更新
-    if (gyroActive && lastSensorQuaternion) {
-        const q = lastSensorQuaternion;
+    if (gyroActive && lastGyroEvent) {
         const cameraEuler = new THREE.Euler().setFromQuaternion(player.pitchObject.quaternion, 'YXZ');
+        const sensorDataHtml = `--- Device (Euler) ---<br>
+            Alpha (ヨー): ${lastGyroEvent.alpha.toFixed(2)}<br>
+            Beta (ピッチ): ${lastGyroEvent.beta.toFixed(2)}<br>
+            Gamma (ロール): ${(lastGyroEvent.gamma || 0).toFixed(2)}`;
+        
         debugMonitor.innerHTML = `
             Version: ${VERSION}<br>
-            API: OrientationSensor<br>
-            --- Sensor (Quaternion) ---<br>
-            X:${q[0].toFixed(2)}, Y:${q[1].toFixed(2)}, Z:${q[2].toFixed(2)}, W:${q[3].toFixed(2)}<br>
+            API: DeviceOrientationEvent<br>
+            ${sensorDataHtml}<br>
             --- Camera ---<br>
             Yaw (Y): ${THREE.MathUtils.radToDeg(cameraEuler.y).toFixed(2)}<br>
             Pitch (X): ${THREE.MathUtils.radToDeg(cameraEuler.x).toFixed(2)}<br>
