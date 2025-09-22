@@ -2,7 +2,7 @@ import * as THREE from 'three';
 // DeviceOrientationControlsをアドオンからインポート
 import { DeviceOrientationControls } from 'three/addons/controls/DeviceOrientationControls.js';
 
-const VERSION = 'v2.6'; // バージョン番号を更新
+const VERSION = 'v2.7'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor, testObject;
@@ -39,7 +39,6 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // ★★★ 変更点: カメラを直接シーンに追加 ★★★
     scene.add(camera);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -62,7 +61,6 @@ function init() {
     testObject.position.set(0, coneHeight / 2, -10);
     scene.add(testObject);
 
-    // ★★★ 変更点: DeviceOrientationControlsをカメラに直接適用 ★★★
     controls = new DeviceOrientationControls(camera);
 
     setupDebugMonitor();
@@ -190,7 +188,6 @@ function updatePlayer(deltaTime) {
     
     if (moveDirection.length() > 0.01) {
         const moveQuaternion = new THREE.Quaternion();
-        // ★★★ 変更点: 回転はカメラから直接取得 ★★★
         camera.getWorldQuaternion(moveQuaternion);
 
         // 上下を向いた際に移動方向がおかしくならないよう、X軸とZ軸の回転をリセット
@@ -205,7 +202,6 @@ function updatePlayer(deltaTime) {
     }
     
     player.velocity.copy(player.direction).multiplyScalar(player.speed * deltaTime);
-    // ★★★ 変更点: カメラの位置を直接更新 ★★★
     camera.position.add(player.velocity);
 }
 
