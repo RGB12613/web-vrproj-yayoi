@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '6.3 - Code Fix'; // バージョン番号を更新
+const VERSION = '6.4 - CDN Path Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -69,8 +69,8 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // Git LFSとCORSの問題を解決するjsDelivr CDNのURLを使用
-    const glbPath = 'https://cdn.jsdelivr.net/gh/RGB12613/web-vrproj-yayoi/glb/field.glb';
+    // ★★★ 変更点: jsDelivrのURLにブランチ名(@main)を追加 ★★★
+    const glbPath = 'https://cdn.jsdelivr.net/gh/RGB12613/web-vrproj-yayoi@main/glb/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
