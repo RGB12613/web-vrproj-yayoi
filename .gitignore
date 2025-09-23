@@ -1,4 +1,4 @@
 *.fbx
 *.blend
 *.blend1
-./gltf-transform/
+gltf-transform/
