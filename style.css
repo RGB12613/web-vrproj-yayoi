@@ -22,16 +22,25 @@ canvas {
     pointer-events: auto;
 }
 
-/* ★★★ 変更点: Flexboxの配置方向を修正 ★★★ */
+/* 左上のUIコンテナ */
+#top-left-controls {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+}
+
+/* 左下のUIコンテナ */
 #bottom-left-controls {
     position: fixed;
-    left: 20px;
-    bottom: 20px;
+    left: 30px;
+    bottom: 30px;
     display: flex;
-    flex-direction: column; /* 上から下に要素を並べる */
+    /* ★★★ 変更点: 要素を縦に、逆順に並べることで、スティックが一番下に来るようにする ★★★ */
+    flex-direction: column-reverse; 
     align-items: center;
-    gap: 15px;
+    gap: 15px; /* スティックと上下ボタンの間の隙間 */
 }
+
 
 #joystick-container {
     width: 120px;
@@ -51,7 +60,6 @@ canvas {
     transition: transform 0.1s;
 }
 
-/* ★★★ 変更点: ボタンを縦並びに修正 ★★★ */
 #vertical-controls {
     display: flex;
     flex-direction: column; /* 上下ボタンを縦に並べる */
@@ -71,7 +79,7 @@ canvas {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    user-select: none;
+    user-select: none; /* テキスト選択を防ぐ */
 }
 
 .vertical-button:active {
@@ -97,7 +105,7 @@ canvas {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
-    display: none;
+    display: none; 
     justify-content: center;
     align-items: center;
     font-size: 24px;
@@ -113,9 +121,6 @@ canvas {
 }
 
 #settings-button {
-    position: fixed;
-    top: 20px;
-    left: 20px;
     width: 40px;
     height: 40px;
     background-color: rgba(0, 0, 0, 0.3);
@@ -127,6 +132,12 @@ canvas {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 0;
+}
+
+#settings-button svg {
+    width: 24px;
+    height: 24px;
 }
 
 #settings-modal-overlay {
@@ -140,7 +151,6 @@ canvas {
     justify-content: center;
     align-items: center;
     z-index: 300;
-    pointer-events: auto;
 }
 
 #settings-modal {
@@ -158,7 +168,7 @@ canvas {
     align-items: center;
     border-bottom: 1px solid #444;
     padding-bottom: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .modal-header h2 {
@@ -173,26 +183,33 @@ canvas {
     cursor: pointer;
 }
 
-.hidden {
-    display: none !important;
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .settings-item {
-    margin-bottom: 15px;
+    width: 100%;
 }
 
 .modal-button {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     background-color: #444;
-    border: 1px solid #666;
     color: white;
+    border: none;
     border-radius: 5px;
-    cursor: pointer;
     font-size: 16px;
+    text-align: left;
+    cursor: pointer;
 }
 
-.modal-button:active {
+.modal-button:hover {
     background-color: #555;
+}
+
+.hidden {
+    display: none !important;
 }
 
