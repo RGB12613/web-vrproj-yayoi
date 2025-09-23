@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '6.0 - Host on Releases'; // バージョン番号を更新
+const VERSION = '6.3 - Code Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -69,9 +69,8 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // ★★★ 変更点: GitHub Releasesからモデルを直接読み込む ★★★
-    // 以下のURLを、あなたがコピーしたファイルのURLに置き換えてください
-    const glbPath = 'https://github.com/RGB12613/web-vrproj-yayoi/releases/download/v1.0-assets/field.glb';
+    // Git LFSとCORSの問題を解決するjsDelivr CDNのURLを使用
+    const glbPath = 'https://cdn.jsdelivr.net/gh/RGB12613/web-vrproj-yayoi/glb/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
