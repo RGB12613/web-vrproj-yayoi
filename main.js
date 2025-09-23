@@ -71,7 +71,7 @@ function init() {
     
     // ★★★ 変更点: GitHub Releasesからモデルを直接読み込む ★★★
     // 以下のURLを、あなたがコピーしたファイルのURLに置き換えてください
-    const glbPath = 'ここにコピーしたURLを貼り付け';
+    const glbPath = 'https://github.com/RGB12613/web-vrproj-yayoi/releases/download/v1.0-assets/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
