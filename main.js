@@ -1,10 +1,11 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-const VERSION = '5.0 - Fullscreen'; // バージョン番号を更新
+const VERSION = '5.1 - GLB Load'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
-let floor, testObject;
+let floor; // testObjectを削除
 let versionDisplay;
 let orientationWarning;
 let controls;
@@ -16,7 +17,7 @@ const ui = {
     upButton: null,
     downButton: null,
     resetViewButton: null,
-    fullscreenButton: null, // ★★★ 変更点: フルスクリーンボタンの参照を追加 ★★★
+    fullscreenButton: null,
 };
 
 const player = {
@@ -66,13 +67,20 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    const coneRadius = 1;
-    const coneHeight = 2;
-    const coneGeometry = new THREE.ConeGeometry(coneRadius, coneHeight, 32);
-    const coneMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-    testObject = new THREE.Mesh(coneGeometry, coneMaterial);
-    testObject.position.set(0, coneHeight / 2, -10);
-    scene.add(testObject);
+    // ★★★ 変更点: GLBモデルを読み込む ★★★
+    const loader = new GLTFLoader();
+    loader.load(
+        './glb/field.glb',
+        function (gltf) {
+            scene.add(gltf.scene);
+            console.log('GLB model loaded successfully.');
+        },
+        undefined,
+        function (error) {
+            console.error('An error happened while loading the GLB model:', error);
+        }
+    );
+
 
     controls = new DeviceOrientationControls(camera);
     
@@ -84,7 +92,7 @@ function init() {
     ui.upButton = document.getElementById('up-button');
     ui.downButton = document.getElementById('down-button');
     ui.resetViewButton = document.getElementById('reset-view-button');
-    ui.fullscreenButton = document.getElementById('fullscreen-button'); // ★★★ 変更点: フルスクリーンボタンのDOMを取得 ★★★
+    ui.fullscreenButton = document.getElementById('fullscreen-button');
 
     updateVersionDisplay();
     setupEventListeners();
@@ -131,7 +139,6 @@ function setupEventListeners() {
         ui.modalOverlay.classList.add('hidden');
     });
 
-    // ★★★ 変更点: フルスクリーンボタンのイベントリスナーを追加 ★★★
     ui.fullscreenButton.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenButton);
 
@@ -149,7 +156,6 @@ function setupEventListeners() {
 
 }
 
-// ★★★ 変更点: フルスクリーン関連の関数を追加 ★★★
 function toggleFullscreen() {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
