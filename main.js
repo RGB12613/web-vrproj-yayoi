@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '7.3 - Loading Screen'; // バージョン番号を更新
+const VERSION = '7.5 - Revert to Local Path'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -18,7 +18,6 @@ const ui = {
     downButton: null,
     resetViewButton: null,
     fullscreenButton: null,
-    // ★★★ 変更点: ローディング関連のUI要素を追加 ★★★
     loadingScreen: null,
     progressBar: null,
     loadingText: null,
@@ -67,12 +66,14 @@ function init() {
     directionalLight.position.set(1, 1, 0).normalize();
     scene.add(directionalLight);
 
+    /*
     const floorGeometry = new THREE.PlaneGeometry(200, 200);
     const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x999999 });
     floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-    
+    */
+
     // UI要素の取得
     versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
@@ -91,33 +92,33 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    const glbPath = 'https://cdn.jsdelivr.net/gh/RGB12613/web-vrproj-yayoi@master/glb/field.glb';
+    // ★★★ 変更点: ローカルの相対パスに戻す ★★★
+    const glbPath = './glb/field.glb';
+    console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
         glbPath,
-        // ★★★ 変更点: on-load (成功時) ★★★
         function (gltf) {
             scene.add(gltf.scene);
             console.log('GLB model loaded successfully.');
             
-            // ローディング画面をフェードアウト
             ui.loadingScreen.style.opacity = '0';
             setTimeout(() => {
                 ui.loadingScreen.classList.add('hidden');
-                // メインUIとジャイロボタンを表示
                 ui.uiContainer.classList.remove('hidden');
                 ui.gyroButton.classList.remove('hidden');
-            }, 500); // 0.5秒後に非表示
+            }, 500);
         },
-        // ★★★ 変更点: on-progress (読み込み中) ★★★
         function (xhr) {
-            if (xhr.lengthComputable) {
+            if (xhr.lengthComputable && xhr.total > 0) {
                 const percentComplete = xhr.loaded / xhr.total * 100;
                 ui.progressBar.style.width = percentComplete + '%';
                 ui.loadingText.textContent = Math.round(percentComplete) + '%';
+            } else {
+                console.log(xhr.loaded + ' bytes loaded (total size unknown)');
+                ui.loadingText.textContent = 'Loading...';
             }
         },
-        // ★★★ 変更点: on-error (失敗時) ★★★
         function (error) {
             console.error('An error happened while loading the GLB model:', error);
             ui.loadingText.textContent = 'モデルの読み込みに失敗しました';
