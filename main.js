@@ -1,11 +1,12 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+// ★★★ 変更点: import文をimportmapを利用する形に修正 ★★★
+import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '5.2 - Path Fix'; // バージョン番号を更新
+const VERSION = '5.3 - Importmap Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
-let floor; // testObjectを削除
+let floor;
 let versionDisplay;
 let orientationWarning;
 let controls;

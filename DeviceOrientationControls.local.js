@@ -1,11 +1,11 @@
-// ★★★ 変更点: Three.js本体を完全なURLで直接インポート ★★★
+// ★★★ 変更点: Three.js本体をimportmap経由で読み込むように修正 ★★★
 import {
 	Euler,
 	EventDispatcher,
 	MathUtils,
 	Quaternion,
 	Vector3
-} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+} from 'three';
 
 const _zee = new Vector3(0, 0, 1);
 const _euler = new Euler();
@@ -39,7 +39,6 @@ class DeviceOrientationControls extends EventDispatcher {
 
 		this.alphaOffset = 0; // radians
 		
-		// For touch control
 		this.touchYaw = 0;
 		this.touchPitch = 0;
 
@@ -119,14 +118,9 @@ class DeviceOrientationControls extends EventDispatcher {
 				const gyroQuaternion = new Quaternion();
 				setObjectQuaternion(gyroQuaternion, alpha, beta, gamma, orient);
 				
-				// Combine gyro with touch controls
-				// 1. Yaw (left-right) rotation around the world's Y-axis
 				const touchQuaternionYaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), this.touchYaw);
-				
-				// 2. Pitch (up-down) rotation around the local X-axis
 				const touchQuaternionPitch = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.touchPitch);
 
-				// Calculate final orientation: (Touch Yaw) * (Gyro) * (Touch Pitch)
 				const finalQuaternion = new Quaternion()
 					.multiply(touchQuaternionYaw)
 					.multiply(gyroQuaternion)
@@ -144,7 +138,6 @@ class DeviceOrientationControls extends EventDispatcher {
 		this.resetView = function () {
 			this.touchYaw = 0;
 			this.touchPitch = 0;
-			// Reset alphaOffset based on the current device orientation
 			const device = scope.deviceOrientation;
 			if(device && device.alpha !== null) {
 				this.alphaOffset = -MathUtils.degToRad(device.webkitCompassHeading || device.alpha);
