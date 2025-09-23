@@ -35,8 +35,8 @@ canvas {
     left: 30px;
     bottom: 30px;
     display: flex;
-    /* ★★★ 変更点: 要素を縦に、逆順に並べることで、スティックが一番下に来るようにする ★★★ */
-    flex-direction: column-reverse; 
+    /* ★★★ 変更点: column-reverseをやめ、通常のcolumn（上から下）に指定 ★★★ */
+    flex-direction: column; 
     align-items: center;
     gap: 15px; /* スティックと上下ボタンの間の隙間 */
 }

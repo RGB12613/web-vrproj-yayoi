@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '5.4 - Layout Fix'; // バージョン番号を更新
+const VERSION = '5.5 - iOS Layout Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
