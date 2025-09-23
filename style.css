@@ -30,19 +30,18 @@ canvas {
 }
 
 /* 左下のUIコンテナ */
+/* ★★★ 変更点: このコンテナは単なる基準点とし、直接のレイアウト指定は削除 ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 30px;
     bottom: 30px;
-    display: flex;
-    /* ★★★ 変更点: column-reverseをやめ、通常のcolumn（上から下）に指定 ★★★ */
-    flex-direction: column; 
-    align-items: center;
-    gap: 15px; /* スティックと上下ボタンの間の隙間 */
 }
 
-
+/* ★★★ 変更点: ジョイスティックの位置をコンテナの左下に固定 ★★★ */
 #joystick-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
     width: 120px;
     height: 120px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -60,10 +59,16 @@ canvas {
     transition: transform 0.1s;
 }
 
+/* ★★★ 変更点: 上下ボタンの位置を、ジョイスティックの真上に固定 ★★★ */
 #vertical-controls {
+    position: absolute;
+    left: 50%; /* 親コンテナの中央に配置 */
+    transform: translateX(-50%); /* 中央揃えのための調整 */
+    bottom: 135px; /* ジョイスティックの高さ(120px) + 隙間(15px) */
     display: flex;
-    flex-direction: column; /* 上下ボタンを縦に並べる */
+    flex-direction: column;
     gap: 10px;
+    align-items: center;
 }
 
 .vertical-button {
