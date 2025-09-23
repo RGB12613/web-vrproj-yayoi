@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '5.7 - GLB Root Path'; // バージョン番号を更新
+const VERSION = '6.0 - Host on Releases'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -69,8 +69,9 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // ★★★ 変更点: シンプルな相対パスに変更 ★★★
-    const glbPath = 'glb/field.glb';
+    // ★★★ 変更点: GitHub Releasesからモデルを直接読み込む ★★★
+    // 以下のURLを、あなたがコピーしたファイルのURLに置き換えてください
+    const glbPath = 'ここにコピーしたURLを貼り付け';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
