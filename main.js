@@ -2,7 +2,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-const VERSION = '5.1 - GLB Load'; // バージョン番号を更新
+const VERSION = '5.2 - Path Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor; // testObjectを削除
@@ -67,7 +67,6 @@ function init() {
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
 
-    // ★★★ 変更点: GLBモデルを読み込む ★★★
     const loader = new GLTFLoader();
     loader.load(
         './glb/field.glb',

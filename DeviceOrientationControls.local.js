@@ -1,3 +1,4 @@
+// ★★★ 変更点: Three.js本体を完全なURLで直接インポート ★★★
 import {
 	Euler,
 	EventDispatcher,
@@ -35,10 +36,13 @@ class DeviceOrientationControls extends EventDispatcher {
 
 		this.deviceOrientation = {};
 		this.screenOrientation = 0;
+
+		this.alphaOffset = 0; // radians
 		
 		// For touch control
 		this.touchYaw = 0;
 		this.touchPitch = 0;
+
 
 		const onDeviceOrientationChangeEvent = function (event) {
 			scope.deviceOrientation = event;
@@ -60,23 +64,28 @@ class DeviceOrientationControls extends EventDispatcher {
 
 			onScreenOrientationChangeEvent(); // run once on load
 
+			// First event listener to set the alphaOffset
 			const onFirstDeviceOrientation = (event) => {
 				if(event.alpha === null) return;
 				
-				// Set alphaOffset automatically
+				// Set alphaOffset automatically based on the initial heading
 				const heading = event.webkitCompassHeading || event.alpha;
 				if(heading) {
 					this.alphaOffset = -MathUtils.degToRad(heading);
 				}
 				
+				// Replace this listener with the regular one
 				window.removeEventListener('deviceorientation', onFirstDeviceOrientation);
 				window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
 			};
 
+
+			// iOS 13+
 			if (window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
 				window.DeviceOrientationEvent.requestPermission().then(function (response) {
 					if (response == 'granted') {
 						window.addEventListener('orientationchange', onScreenOrientationChangeEvent);
+						// Use the one-time listener to initialize the alpha offset
 						window.addEventListener('deviceorientation', onFirstDeviceOrientation);
 					}
 				}).catch(function (error) {
@@ -110,14 +119,14 @@ class DeviceOrientationControls extends EventDispatcher {
 				const gyroQuaternion = new Quaternion();
 				setObjectQuaternion(gyroQuaternion, alpha, beta, gamma, orient);
 				
-				// ★★★ 変更点: ジャイロとタッチの回転を正しく合成 ★★★
-				// 1. ヨー(左右スワイプ)をワールドのY軸周りに適用
+				// Combine gyro with touch controls
+				// 1. Yaw (left-right) rotation around the world's Y-axis
 				const touchQuaternionYaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), this.touchYaw);
 				
-				// 2. ピッチ(上下スワイプ)をローカルのX軸周りに適用
+				// 2. Pitch (up-down) rotation around the local X-axis
 				const touchQuaternionPitch = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.touchPitch);
 
-				// 最終的な向きを計算: (タッチのヨー回転) * (ジャイロの回転) * (タッチのピッチ回転)
+				// Calculate final orientation: (Touch Yaw) * (Gyro) * (Touch Pitch)
 				const finalQuaternion = new Quaternion()
 					.multiply(touchQuaternionYaw)
 					.multiply(gyroQuaternion)
