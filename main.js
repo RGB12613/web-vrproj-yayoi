@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '5.6 - GLB Path Fix'; // バージョン番号を更新
+const VERSION = '5.7 - GLB Root Path'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -69,8 +69,8 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // ★★★ 変更点: import.meta.urlを使って、現在のJSファイルからの絶対パスを生成 ★★★
-    const glbPath = new URL('./glb/field.glb', import.meta.url).href;
+    // ★★★ 変更点: シンプルな相対パスに変更 ★★★
+    const glbPath = 'glb/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
