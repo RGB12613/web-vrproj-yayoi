@@ -2,10 +2,47 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: sans-serif;
+    background-color: #000; /* ★★★ 変更点: 背景を黒に設定 ★★★ */
 }
 
 canvas {
     display: block;
+}
+
+/* ★★★ 変更点: ローディング画面のスタイルを追加 ★★★ */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #111;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 400;
+    transition: opacity 0.5s ease-out; /* フェードアウト用 */
+}
+
+#loading-content {
+    text-align: center;
+}
+
+#progress-bar-container {
+    width: 250px;
+    height: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+#progress-bar {
+    width: 0%;
+    height: 100%;
+    background-color: #4a90e2;
+    border-radius: 10px;
+    transition: width 0.2s;
 }
 
 /* --- UI Controls --- */
@@ -22,26 +59,23 @@ canvas {
     pointer-events: auto;
 }
 
-/* 左上のUIコンテナ */
 #top-left-controls {
     position: fixed;
     top: 20px;
     left: 20px;
 }
 
-/* 左下のUIコンテナ */
-/* ★★★ 変更点: このコンテナは単なる基準点とし、直接のレイアウト指定は削除 ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 30px;
     bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
 }
 
-/* ★★★ 変更点: ジョイスティックの位置をコンテナの左下に固定 ★★★ */
 #joystick-container {
-    position: absolute;
-    left: 0;
-    bottom: 0;
     width: 120px;
     height: 120px;
     background-color: rgba(255, 255, 255, 0.2);
@@ -59,12 +93,7 @@ canvas {
     transition: transform 0.1s;
 }
 
-/* ★★★ 変更点: 上下ボタンの位置を、ジョイスティックの真上に固定 ★★★ */
 #vertical-controls {
-    position: absolute;
-    left: 50%; /* 親コンテナの中央に配置 */
-    transform: translateX(-50%); /* 中央揃えのための調整 */
-    bottom: 135px; /* ジョイスティックの高さ(120px) + 隙間(15px) */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -84,7 +113,7 @@ canvas {
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    user-select: none; /* テキスト選択を防ぐ */
+    user-select: none;
 }
 
 .vertical-button:active {
@@ -100,6 +129,7 @@ canvas {
     padding: 15px 30px;
     font-size: 18px;
     cursor: pointer;
+    z-index: 100;
 }
 
 #orientation-warning {

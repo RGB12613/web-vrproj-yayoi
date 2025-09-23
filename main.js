@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '7.1 - Netlify Deploy'; // バージョン番号を更新
+const VERSION = '7.3 - Loading Screen'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -18,6 +18,12 @@ const ui = {
     downButton: null,
     resetViewButton: null,
     fullscreenButton: null,
+    // ★★★ 変更点: ローディング関連のUI要素を追加 ★★★
+    loadingScreen: null,
+    progressBar: null,
+    loadingText: null,
+    uiContainer: null,
+    gyroButton: null,
 };
 
 const player = {
@@ -66,30 +72,8 @@ function init() {
     floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     scene.add(floor);
-
-    const loader = new GLTFLoader();
     
-    // ★★★ 変更点: NetlifyのGit LFSサポートを利用するため、ローカルパスに戻す ★★★
-    const glbPath = './glb/field.glb';
-    console.log(`Attempting to load GLB from: ${glbPath}`);
-
-    loader.load(
-        glbPath,
-        function (gltf) {
-            scene.add(gltf.scene);
-            console.log('GLB model loaded successfully.');
-        },
-        function (xhr) {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-        },
-        function (error) {
-            console.error('An error happened while loading the GLB model:', error);
-        }
-    );
-
-
-    controls = new DeviceOrientationControls(camera);
-    
+    // UI要素の取得
     versionDisplay = document.getElementById('version-display');
     orientationWarning = document.getElementById('orientation-warning');
     ui.settingsButton = document.getElementById('settings-button');
@@ -99,7 +83,50 @@ function init() {
     ui.downButton = document.getElementById('down-button');
     ui.resetViewButton = document.getElementById('reset-view-button');
     ui.fullscreenButton = document.getElementById('fullscreen-button');
+    ui.loadingScreen = document.getElementById('loading-screen');
+    ui.progressBar = document.getElementById('progress-bar');
+    ui.loadingText = document.getElementById('loading-text');
+    ui.uiContainer = document.getElementById('ui-container');
+    ui.gyroButton = document.getElementById('gyro-button');
 
+    const loader = new GLTFLoader();
+    
+    const glbPath = 'https://cdn.jsdelivr.net/gh/RGB12613/web-vrproj-yayoi@master/glb/field.glb';
+
+    loader.load(
+        glbPath,
+        // ★★★ 変更点: on-load (成功時) ★★★
+        function (gltf) {
+            scene.add(gltf.scene);
+            console.log('GLB model loaded successfully.');
+            
+            // ローディング画面をフェードアウト
+            ui.loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                ui.loadingScreen.classList.add('hidden');
+                // メインUIとジャイロボタンを表示
+                ui.uiContainer.classList.remove('hidden');
+                ui.gyroButton.classList.remove('hidden');
+            }, 500); // 0.5秒後に非表示
+        },
+        // ★★★ 変更点: on-progress (読み込み中) ★★★
+        function (xhr) {
+            if (xhr.lengthComputable) {
+                const percentComplete = xhr.loaded / xhr.total * 100;
+                ui.progressBar.style.width = percentComplete + '%';
+                ui.loadingText.textContent = Math.round(percentComplete) + '%';
+            }
+        },
+        // ★★★ 変更点: on-error (失敗時) ★★★
+        function (error) {
+            console.error('An error happened while loading the GLB model:', error);
+            ui.loadingText.textContent = 'モデルの読み込みに失敗しました';
+        }
+    );
+
+
+    controls = new DeviceOrientationControls(camera);
+    
     updateVersionDisplay();
     setupEventListeners();
     checkScreenOrientation();
@@ -125,9 +152,9 @@ function setupEventListeners() {
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
 
-    document.getElementById('gyro-button').addEventListener('click', () => {
+    ui.gyroButton.addEventListener('click', () => {
         controls.connect();
-        document.getElementById('gyro-button').style.display = 'none';
+        ui.gyroButton.style.display = 'none';
     });
     
     ui.settingsButton.addEventListener('click', () => ui.modalOverlay.classList.remove('hidden'));

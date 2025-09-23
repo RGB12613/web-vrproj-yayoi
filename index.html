@@ -5,64 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>3D空間移動デモ</title>
     <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
-    <div id="ui-container">
-        <!-- 左上のUI -->
+    <!-- ★★★ 変更点: ローディング画面を追加 ★★★ -->
+    <div id="loading-screen">
+        <div id="loading-content">
+            <p>Now Loading...</p>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="loading-text">0%</p>
+        </div>
+    </div>
+
+    <!-- ★★★ 変更点: UI要素をui-containerで囲み、初期状態で非表示に ★★★ -->
+    <div id="ui-container" class="hidden">
         <div id="top-left-controls">
             <button id="settings-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L12 3.03333C10.7434 3.03333 9.53333 3.33333 8.43333 3.86667L7.03333 2.46667L2.46667 7.03333L3.86667 8.43333C3.33333 9.53333 3.03333 10.7434 3.03333 12L1 12L1 12.0333C1 12.0223 1 12.0111 1 12L1 12L1 12.0333C1 12.0223 1 12.0111 1 12V12V12V12L1 12L3.03333 12C3.03333 13.2566 3.33333 14.4667 3.86667 15.5667L2.46667 16.9667L7.03333 21.5333L8.43333 20.1333C9.53333 20.6667 10.7434 20.9667 12 20.9667L12 23L12.0333 23C12.0223 23 12.0111 23 12 23L12 23L12.0333 23C12.0223 23 12.0111 23 12 23H12H12H12L12 23L12 20.9667C13.2566 20.9667 14.4667 20.6667 15.5667 20.1333L16.9667 21.5333L21.5333 16.9667L20.1333 15.5667C20.6667 14.4667 20.9667 13.2566 20.9667 12L23 12V12V12V12L23 12L20.9667 12C20.9667 10.7434 20.6667 9.53333 20.1333 8.43333L21.5333 7.03333L16.9667 2.46667L15.5667 3.86667C14.4667 3.33333 13.2566 3.03333 12 3.03333L12 1L12 1ZM12 8C14.2091 8 16 9.79086 16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8Z"></path></svg>
             </button>
         </div>
-        
-        <!-- 左下のUI -->
-        <!-- ★★★ 変更点: HTMLの要素の順番を入れ替え ★★★ -->
         <div id="bottom-left-controls">
-             <div id="joystick-container">
-                <div id="joystick-knob"></div>
-            </div>
             <div id="vertical-controls">
                 <button id="up-button" class="vertical-button">▲</button>
                 <button id="down-button" class="vertical-button">▼</button>
             </div>
+            <div id="joystick-container">
+                <div id="joystick-knob"></div>
+            </div>
         </div>
-
-        <!-- 右下のUI -->
         <div id="version-display"></div>
-        
-        <!-- 中央のボタン -->
-        <button id="gyro-button">ジャイロセンサーを有効化</button>
-        
-        <!-- 全画面のUI -->
-        <div id="orientation-warning">画面を横にしてください</div>
+    </div>
 
-        <!-- 設定モーダル -->
-        <div id="settings-modal-overlay" class="hidden">
-            <div id="settings-modal">
-                <div class="modal-header">
-                    <h2>設定</h2>
-                    <button id="close-modal-button">&times;</button>
+    <button id="gyro-button" class="hidden">ジャイロセンサーを有効化</button>
+    <div id="orientation-warning">画面を横にしてください</div>
+    
+    <div id="settings-modal-overlay" class="hidden">
+        <div id="settings-modal">
+            <div class="modal-header">
+                <h2>設定</h2>
+                <button id="close-modal-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-item">
+                    <button id="reset-view-button" class="modal-button">視点のリセット</button>
                 </div>
-                <div class="modal-body">
-                    <div class="settings-item">
-                        <button id="reset-view-button" class="modal-button">視点のリセット</button>
-                    </div>
-                    <div class="settings-item">
-                        <button id="fullscreen-button" class="modal-button">フルスクリーン表示</button>
-                    </div>
+                <div class="settings-item">
+                    <button id="fullscreen-button" class="modal-button">フルスクリーン表示</button>
                 </div>
             </div>
         </div>
     </div>
     
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
     <script type="module" src="main.js"></script>
 </body>
 </html>
