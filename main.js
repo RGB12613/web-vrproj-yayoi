@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '7.8 - Resize Fix'; // バージョン番号を更新
+const VERSION = '8.1 - R2 Final Path'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -92,19 +92,13 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    const glbPath = './glb/field.glb';
+    // ★★★ 変更点: Cloudflare R2の完全な公開URLに修正 ★★★
+    const glbPath = 'https://14a62f6ef5eacf6700b9096a2b0e283f.r2.cloudflarestorage.com/shinchoku-web-vr-yayoi-assets/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
         glbPath,
         function (gltf) {
-            gltf.scene.traverse(function (object) {
-                if (object.isMesh && object.material) {
-                    object.material.transparent = false;
-                    object.material.depthWrite = true;
-                }
-            });
-
             scene.add(gltf.scene);
             console.log('GLB model loaded successfully.');
             
@@ -116,18 +110,14 @@ function init() {
             }, 500);
         },
         function (xhr) {
-            let percentComplete = 0;
             if (xhr.lengthComputable && xhr.total > 0) {
-                percentComplete = xhr.loaded / xhr.total * 100;
+                const percentComplete = xhr.loaded / xhr.total * 100;
+                ui.progressBar.style.width = percentComplete + '%';
                 ui.loadingText.textContent = Math.round(percentComplete) + '%';
             } else {
-                const assumedTotal = 77 * 1024 * 1024;
-                percentComplete = Math.min((xhr.loaded / assumedTotal) * 100, 100);
-                
                 const mbLoaded = (xhr.loaded / (1024 * 1024)).toFixed(1);
                 ui.loadingText.textContent = `Loading... (${mbLoaded} MB)`;
             }
-            ui.progressBar.style.width = percentComplete + '%';
         },
         function (error) {
             console.error('An error happened while loading the GLB model:', error);
@@ -302,17 +292,6 @@ function onTouchEnd() {
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
-
-    // ★★★ 変更点: 毎フレーム、描画領域のリサイズが必要かチェック ★★★
-    const canvas = renderer.domElement;
-    // CSSによる表示サイズと、内部の描画バッファサイズを比較
-    if (canvas.clientWidth !== canvas.width || canvas.clientHeight !== canvas.height) {
-        // リサイズが必要な場合、レンダラーとカメラを更新
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-    }
-
     const deltaTime = clock.getDelta();
     controls.update();
     updatePlayer(deltaTime);
