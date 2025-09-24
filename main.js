@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '7.5 - Revert to Local Path'; // バージョン番号を更新
+const VERSION = '7.7 - Depth Test Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -92,13 +92,22 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // ★★★ 変更点: ローカルの相対パスに戻す ★★★
     const glbPath = './glb/field.glb';
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
         glbPath,
         function (gltf) {
+            // ★★★ 変更点: 深度の問題を解決するため、全マテリアルを強制的に不透明として扱う ★★★
+            gltf.scene.traverse(function (object) {
+                if (object.isMesh && object.material) {
+                    // 透明設定を無効化
+                    object.material.transparent = false;
+                    // 深度バッファへの書き込みを強制的に有効化
+                    object.material.depthWrite = true;
+                }
+            });
+
             scene.add(gltf.scene);
             console.log('GLB model loaded successfully.');
             
@@ -110,14 +119,18 @@ function init() {
             }, 500);
         },
         function (xhr) {
+            let percentComplete = 0;
             if (xhr.lengthComputable && xhr.total > 0) {
-                const percentComplete = xhr.loaded / xhr.total * 100;
-                ui.progressBar.style.width = percentComplete + '%';
+                percentComplete = xhr.loaded / xhr.total * 100;
                 ui.loadingText.textContent = Math.round(percentComplete) + '%';
             } else {
-                console.log(xhr.loaded + ' bytes loaded (total size unknown)');
-                ui.loadingText.textContent = 'Loading...';
+                const assumedTotal = 77 * 1024 * 1024;
+                percentComplete = Math.min((xhr.loaded / assumedTotal) * 100, 100);
+                
+                const mbLoaded = (xhr.loaded / (1024 * 1024)).toFixed(1);
+                ui.loadingText.textContent = `Loading... (${mbLoaded} MB)`;
             }
+            ui.progressBar.style.width = percentComplete + '%';
         },
         function (error) {
             console.error('An error happened while loading the GLB model:', error);
