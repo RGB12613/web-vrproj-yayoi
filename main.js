@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { CONFIG } from './config.js';
-// ★★★ 変更点: 新しいSceneManagerをインポート ★★★
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = '8.5 - Refactor'; // バージョン番号を更新
+const VERSION = '8.6 - Water Surface'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
 let versionDisplay;
 let orientationWarning;
 let controls;
-let sceneManager; // ★★★ 変更点: SceneManagerのインスタンスを保持する変数 ★★★
+let sceneManager;
+let water; // ★★★ 変更点: 水面オブジェクトを保持する変数を追加 ★★★
 
 const ui = {
     settingsButton: null,
@@ -63,9 +63,10 @@ function init() {
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     scene.add(camera);
 
-    // ★★★ 変更点: SceneManagerをインスタンス化し、ライト設定を委任 ★★★
     sceneManager = new SceneManager(scene);
-    sceneManager.setupLights();
+    // ★★★ 変更点: ライトの参照を取得し、水面の作成を指示 ★★★
+    const sun = sceneManager.setupLights();
+    water = sceneManager.createWater(sun);
 
 
     // UI要素の取得
@@ -85,7 +86,6 @@ function init() {
     ui.gyroButton = document.getElementById('gyro-button');
 
     
-    // ★★★ 変更点: モデル読み込みをSceneManagerに委任 ★★★
     const glbPath = CONFIG.ASSET_URL;
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
@@ -289,6 +289,12 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     controls.update();
+
+    // ★★★ 変更点: 水面の時間を更新してアニメーションさせる ★★★
+    if (water) {
+        water.material.uniforms['time'].value += deltaTime;
+    }
+
     updatePlayer(deltaTime);
     renderer.render(scene, camera);
 }

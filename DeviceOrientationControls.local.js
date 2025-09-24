@@ -1,33 +1,28 @@
-// ★★★ 変更点: Three.js本体をimportmap経由で読み込むように修正 ★★★
-import {
-	Euler,
-	EventDispatcher,
-	MathUtils,
-	Quaternion,
-	Vector3
-} from 'three';
+import * as THREE from 'three';
 
-const _zee = new Vector3(0, 0, 1);
-const _euler = new Euler();
-const _q0 = new Quaternion();
-const _q1 = new Quaternion(- Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
+const _zee = new THREE.Vector3(0, 0, 1);
+const _euler = new THREE.Euler();
+const _q0 = new THREE.Quaternion();
+const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
 
 const _changeEvent = { type: 'change' };
 
-class DeviceOrientationControls extends EventDispatcher {
+class DeviceOrientationControls extends THREE.EventDispatcher {
 
 	constructor(object) {
 
 		super();
 
 		if (window.isSecureContext === false) {
+
 			console.error('THREE.DeviceOrientationControls: DeviceOrientationEvent is only available in secure contexts (https)');
+
 		}
 
 		const scope = this;
 
 		const EPS = 0.000001;
-		const lastQuaternion = new Quaternion();
+		const lastQuaternion = new THREE.Quaternion();
 
 		this.object = object;
 		this.object.rotation.reorder('YXZ');
@@ -39,115 +34,139 @@ class DeviceOrientationControls extends EventDispatcher {
 
 		this.alphaOffset = 0; // radians
 		
+		// ★★★ 変更点: タッチ操作による回転オフセットを追加 ★★★
 		this.touchYaw = 0;
 		this.touchPitch = 0;
-
+		
+		let firstReading = true; // ★★★ 変更点: 最初の読み取りフラグを追加 ★★★
 
 		const onDeviceOrientationChangeEvent = function (event) {
+			
+			// ★★★ 変更点: 最初の読み取りでalphaOffsetを自動設定 ★★★
+			if (firstReading) {
+				if (event.webkitCompassHeading) {
+					// iOSの高精度な方位を利用
+					scope.alphaOffset = -THREE.MathUtils.degToRad(event.webkitCompassHeading);
+				} else {
+					// Androidなどでは、最初の向きを正面とする
+					scope.alphaOffset = -THREE.MathUtils.degToRad(event.alpha);
+				}
+				firstReading = false;
+			}
+			
 			scope.deviceOrientation = event;
 		};
 
 		const onScreenOrientationChangeEvent = function () {
+
 			scope.screenOrientation = window.orientation || 0;
+
 		};
 
 		// The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
+
 		const setObjectQuaternion = function (quaternion, alpha, beta, gamma, orient) {
-			_euler.set(beta, alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
+			
+			const qTouchYaw = new THREE.Quaternion();
+			qTouchYaw.setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
+
+			const qTouchPitch = new THREE.Quaternion();
+			qTouchPitch.setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
+
+			// ジャイロの回転を計算
+			_euler.set(beta, alpha, -gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
 			quaternion.setFromEuler(_euler); // orient the device
 			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
-			quaternion.multiply(_q0.setFromAxisAngle(_zee, - orient)); // adjust for screen orientation
+			quaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
+
+			// ★★★ 変更点: ヨー（左右）のタッチ回転をワールドY軸基準で適用 ★★★
+			quaternion.premultiply(qTouchYaw);
+			// ★★★ 変更点: ピッチ（上下）のタッチ回転をカメラのローカルX軸基準で適用 ★★★
+			quaternion.multiply(qTouchPitch);
+
 		};
 
 		this.connect = function () {
-
 			onScreenOrientationChangeEvent(); // run once on load
-
-			// First event listener to set the alphaOffset
-			const onFirstDeviceOrientation = (event) => {
-				if(event.alpha === null) return;
-				
-				// Set alphaOffset automatically based on the initial heading
-				const heading = event.webkitCompassHeading || event.alpha;
-				if(heading) {
-					this.alphaOffset = -MathUtils.degToRad(heading);
-				}
-				
-				// Replace this listener with the regular one
-				window.removeEventListener('deviceorientation', onFirstDeviceOrientation);
-				window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
-			};
-
 
 			// iOS 13+
 			if (window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+
 				window.DeviceOrientationEvent.requestPermission().then(function (response) {
+
 					if (response == 'granted') {
+
 						window.addEventListener('orientationchange', onScreenOrientationChangeEvent);
-						// Use the one-time listener to initialize the alpha offset
-						window.addEventListener('deviceorientation', onFirstDeviceOrientation);
+						window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+
 					}
+
 				}).catch(function (error) {
+
 					console.error('THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error);
+
 				});
+
 			} else {
+
 				window.addEventListener('orientationchange', onScreenOrientationChangeEvent);
-				window.addEventListener('deviceorientation', onFirstDeviceOrientation);
+				window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+
 			}
 
 			scope.enabled = true;
+
 		};
 
 		this.disconnect = function () {
+
 			window.removeEventListener('orientationchange', onScreenOrientationChangeEvent);
 			window.removeEventListener('deviceorientation', onDeviceOrientationChangeEvent);
+
 			scope.enabled = false;
+
 		};
 
 		this.update = function () {
+
 			if (scope.enabled === false) return;
 
 			const device = scope.deviceOrientation;
 
 			if (device) {
-				const alpha = device.alpha ? MathUtils.degToRad(device.alpha) + scope.alphaOffset : 0; // Z
-				const beta = device.beta ? MathUtils.degToRad(device.beta) : 0; // X'
-				const gamma = device.gamma ? MathUtils.degToRad(device.gamma) : 0; // Y''
-				const orient = scope.screenOrientation ? MathUtils.degToRad(scope.screenOrientation) : 0; // O
-				
-				const gyroQuaternion = new Quaternion();
-				setObjectQuaternion(gyroQuaternion, alpha, beta, gamma, orient);
-				
-				const touchQuaternionYaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), this.touchYaw);
-				const touchQuaternionPitch = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), this.touchPitch);
 
-				const finalQuaternion = new Quaternion()
-					.multiply(touchQuaternionYaw)
-					.multiply(gyroQuaternion)
-					.multiply(touchQuaternionPitch);
+				const alpha = (device.webkitCompassHeading !== undefined ? device.webkitCompassHeading : device.alpha) ? THREE.MathUtils.degToRad(device.webkitCompassHeading !== undefined ? device.webkitCompassHeading : device.alpha) + scope.alphaOffset : 0; // Z
+				const beta = device.beta ? THREE.MathUtils.degToRad(device.beta) : 0; // X'
+				const gamma = device.gamma ? THREE.MathUtils.degToRad(device.gamma) : 0; // Y''
+				const orient = scope.screenOrientation ? THREE.MathUtils.degToRad(scope.screenOrientation) : 0; // O
 
-				scope.object.quaternion.copy(finalQuaternion);
+				setObjectQuaternion(scope.object.quaternion, alpha, beta, gamma, orient);
 
 				if (8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > EPS) {
+
 					lastQuaternion.copy(scope.object.quaternion);
 					scope.dispatchEvent(_changeEvent);
-				}
-			}
-		};
 
-		this.resetView = function () {
-			this.touchYaw = 0;
-			this.touchPitch = 0;
-			const device = scope.deviceOrientation;
-			if(device && device.alpha !== null) {
-				this.alphaOffset = -MathUtils.degToRad(device.webkitCompassHeading || device.alpha);
+				}
+
 			}
+
 		};
 
 		this.dispose = function () {
+
 			scope.disconnect();
+
 		};
+		
+		// ★★★ 変更点: 視点のリセット機能をピッチ角（上下）のみに限定 ★★★
+		this.resetView = function () {
+			// Resets only the vertical touch swipe, keeping the horizontal orientation.
+			this.touchPitch = 0;
+		};
+
 	}
+
 }
 
 export { DeviceOrientationControls };
