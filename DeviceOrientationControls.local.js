@@ -70,13 +70,13 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
 			quaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
 			
-			// ★★★ 変更点: 左右回転の向きを元に戻すため、角度を反転 ★★★
-			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -scope.touchYaw);
+			// ★★★ 変更点: 安定していたバージョンに回転ロジックを修正 ★★★
+			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
 			const qTouchPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
 
 			// ワールドY軸基準のヨー回転を先に適用し、次にローカルX軸基準のピッチ回転を適用
-			quaternion.multiply(qTouchPitch);
 			quaternion.premultiply(qTouchYaw);
+			quaternion.multiply(qTouchPitch);
 
 		};
 
