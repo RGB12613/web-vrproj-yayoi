@@ -61,17 +61,15 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 
 		};
 
-		// The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
-
 		const setObjectQuaternion = function (quaternion, alpha, beta, gamma, orient) {
 			
-			// ★★★ 変更点: 回転ロジックをv4.9の安定版に戻し、ヨーの向きを修正 ★★★
+			// ★★★ 変更点: 回転ロジックを全面的に再構築 ★★★
 
-			// 1. ジャイロセンサーから基本となる向きを計算
-			_euler.set(beta, alpha, -gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
-			quaternion.setFromEuler(_euler); // orient the device
-			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
-			quaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
+			// 1. ジャイロセンサーから基本となる向きを計算 (ヨーを反転)
+			_euler.set(beta, -alpha, -gamma, 'YXZ'); // ヨー(alpha)を反転させて直感的な操作に
+			const gyroQuaternion = new THREE.Quaternion().setFromEuler(_euler);
+			gyroQuaternion.multiply(_q1); // camera looks out the back of the device, not the top
+			gyroQuaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
 			
 			// 2. タッチ操作によるヨー回転（左右）をワールドのY軸基準で作成
 			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
@@ -79,10 +77,9 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 			// 3. タッチ操作によるピッチ回転（上下）をカメラのローカルX軸基準で作成
 			const qTouchPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
 
-			// 4. 回転を合成：ジャイロの向きを基準に、ワールド基準のヨーとローカル基準のピッチを適用
+			// 4. 回転を合成：(ワールド基準のタッチヨー) * (ジャイロの向き) * (ローカル基準のタッチピッチ)
 			// この順序が最も安定し、意図通りの操作を実現する
-			quaternion.premultiply(qTouchYaw);
-			quaternion.multiply(qTouchPitch);
+			quaternion.copy(qTouchYaw).multiply(gyroQuaternion).multiply(qTouchPitch);
 
 		};
 
