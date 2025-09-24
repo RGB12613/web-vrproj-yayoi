@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from './DeviceOrientationControls.local.js'
 import { CONFIG } from './config.js';
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = '8.6 - Water Surface'; // バージョン番号を更新
+const VERSION = '8.7 - Revert View Reset'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -11,7 +11,7 @@ let versionDisplay;
 let orientationWarning;
 let controls;
 let sceneManager;
-let water; // ★★★ 変更点: 水面オブジェクトを保持する変数を追加 ★★★
+let water;
 
 const ui = {
     settingsButton: null,
@@ -64,7 +64,6 @@ function init() {
     scene.add(camera);
 
     sceneManager = new SceneManager(scene);
-    // ★★★ 変更点: ライトの参照を取得し、水面の作成を指示 ★★★
     const sun = sceneManager.setupLights();
     water = sceneManager.createWater(sun);
 
@@ -290,7 +289,6 @@ function animate() {
     const deltaTime = clock.getDelta();
     controls.update();
 
-    // ★★★ 変更点: 水面の時間を更新してアニメーションさせる ★★★
     if (water) {
         water.material.uniforms['time'].value += deltaTime;
     }

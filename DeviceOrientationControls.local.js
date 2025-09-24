@@ -34,15 +34,13 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 
 		this.alphaOffset = 0; // radians
 		
-		// ★★★ 変更点: タッチ操作による回転オフセットを追加 ★★★
 		this.touchYaw = 0;
 		this.touchPitch = 0;
 		
-		let firstReading = true; // ★★★ 変更点: 最初の読み取りフラグを追加 ★★★
+		let firstReading = true;
 
 		const onDeviceOrientationChangeEvent = function (event) {
 			
-			// ★★★ 変更点: 最初の読み取りでalphaOffsetを自動設定 ★★★
 			if (firstReading) {
 				if (event.webkitCompassHeading) {
 					// iOSの高精度な方位を利用
@@ -67,21 +65,18 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 
 		const setObjectQuaternion = function (quaternion, alpha, beta, gamma, orient) {
 			
-			const qTouchYaw = new THREE.Quaternion();
-			qTouchYaw.setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
-
-			const qTouchPitch = new THREE.Quaternion();
-			qTouchPitch.setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
-
-			// ジャイロの回転を計算
 			_euler.set(beta, alpha, -gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
 			quaternion.setFromEuler(_euler); // orient the device
 			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
 			quaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
+			
+			// ジャイロの回転を計算した後に、タッチによる回転を合成
+			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
+			const qTouchPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
 
-			// ★★★ 変更点: ヨー（左右）のタッチ回転をワールドY軸基準で適用 ★★★
+			// ヨー（左右）のタッチ回転をワールドY軸基準で適用
 			quaternion.premultiply(qTouchYaw);
-			// ★★★ 変更点: ピッチ（上下）のタッチ回転をカメラのローカルX軸基準で適用 ★★★
+			// ピッチ（上下）のタッチ回転をカメラのローカルX軸基準で適用
 			quaternion.multiply(qTouchPitch);
 
 		};
@@ -159,10 +154,21 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 
 		};
 		
-		// ★★★ 変更点: 視点のリセット機能をピッチ角（上下）のみに限定 ★★★
+		// ★★★ 変更点: 視点のリセット機能を、以前の安定したバージョンに戻す ★★★
 		this.resetView = function () {
-			// Resets only the vertical touch swipe, keeping the horizontal orientation.
-			this.touchPitch = 0;
+			// タッチによるオフセットをリセット
+			scope.touchYaw = 0;
+			scope.touchPitch = 0;
+
+			// ジャイロの基準となる向きも現在の向きにリセット
+			const device = scope.deviceOrientation;
+			if (device && (device.alpha || device.webkitCompassHeading)) {
+				if (device.webkitCompassHeading) {
+					scope.alphaOffset = -THREE.MathUtils.degToRad(device.webkitCompassHeading);
+				} else {
+					scope.alphaOffset = -THREE.MathUtils.degToRad(device.alpha);
+				}
+			}
 		};
 
 	}
