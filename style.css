@@ -1,7 +1,15 @@
+html, body {
+    overscroll-behavior-y: none; /* ★★★ 変更点: Pull-to-refreshなどのスクロール関連動作を無効化 ★★★ */
+}
+
 body {
     margin: 0;
     overflow: hidden;
     font-family: sans-serif;
+    /* ★★★ 変更点: iOSでのスクロール問題をさらに抑制 ★★★ */
+    position: fixed;
+    width: 100%;
+    height: 100%;
 }
 
 canvas {
@@ -33,7 +41,7 @@ canvas {
     left: 30px;
     bottom: 30px;
     display: flex;
-    flex-direction: column-reverse; /* ジョイスティックが下、ボタンが上に来るように */
+    flex-direction: column;
     align-items: center;
     gap: 15px;
 }
@@ -46,6 +54,7 @@ canvas {
     display: flex;
     justify-content: center;
     align-items: center;
+    order: 2; /* ★★★ 変更点: 表示順をFlexboxで制御 ★★★ */
 }
 
 #joystick-knob {
@@ -60,7 +69,9 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    order: 1; /* ★★★ 変更点: 表示順をFlexboxで制御 ★★★ */
 }
+
 
 .vertical-button {
     width: 50px;
@@ -205,7 +216,7 @@ canvas {
 .modal-body {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* 項目間の隙間 */
+    gap: 15px;
 }
 
 .settings-item {
@@ -235,7 +246,6 @@ canvas {
     background-color: #555;
 }
 
-/* ★★★ 変更点: トグルスイッチのスタイルを追加 ★★★ */
 .toggle-switch {
     display: flex;
     border: 1px solid #555;
