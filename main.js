@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from './DeviceOrientationControls.local.js'
 import { CONFIG } from './config.js';
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = "9.8"; // バージョン番号を更新
+const VERSION = '9.8'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -26,7 +26,17 @@ const ui = {
     loadingText: null,
     uiContainer: null,
     gyroButton: null,
+    // ★★★ 変更点: トグルスイッチの参照を追加 ★★★
+    toggleYaw: null,
+    togglePitch: null,
 };
+
+// ★★★ 変更点: 設定を保持するオブジェクトを追加 ★★★
+const settings = {
+    invertYaw: false, // false: ノーマル, true: リバース
+    invertPitch: false, // false: ノーマル, true: リバース
+};
+
 
 const player = {
     speed: 5.0,
@@ -83,6 +93,8 @@ function init() {
     ui.loadingText = document.getElementById('loading-text');
     ui.uiContainer = document.getElementById('ui-container');
     ui.gyroButton = document.getElementById('gyro-button');
+    ui.toggleYaw = document.getElementById('toggle-yaw');
+    ui.togglePitch = document.getElementById('toggle-pitch');
 
     
     const glbPath = CONFIG.ASSET_URL;
@@ -169,6 +181,23 @@ function setupEventListeners() {
 
     ui.fullscreenButton.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenButton);
+    
+    // ★★★ 変更点: トグルスイッチのイベントリスナーを追加 ★★★
+    ui.toggleYaw.addEventListener('click', (e) => {
+        if (e.target.classList.contains('toggle-option')) {
+            settings.invertYaw = e.target.dataset.value === 'reverse';
+            ui.toggleYaw.querySelector('.active').classList.remove('active');
+            e.target.classList.add('active');
+        }
+    });
+
+    ui.togglePitch.addEventListener('click', (e) => {
+        if (e.target.classList.contains('toggle-option')) {
+            settings.invertPitch = e.target.dataset.value === 'reverse';
+            ui.togglePitch.querySelector('.active').classList.remove('active');
+            e.target.classList.add('active');
+        }
+    });
 
 
     ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
@@ -269,8 +298,12 @@ function onTouchMove(event) {
     const deltaX = touch.clientX - input.touch.startX;
     const deltaY = touch.clientY - input.touch.startY;
 
-    controls.touchYaw -= deltaX * 0.002;
-    controls.touchPitch -= deltaY * 0.002; 
+    // ★★★ 変更点: 設定に応じて回転方向を決定 ★★★
+    const yawDirection = settings.invertYaw ? 1 : -1;
+    const pitchDirection = settings.invertPitch ? 1 : -1;
+
+    controls.touchYaw += yawDirection * deltaX * 0.002;
+    controls.touchPitch += pitchDirection * deltaY * 0.002; 
     
     controls.touchPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchPitch));
     
