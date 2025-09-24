@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from './DeviceOrientationControls.local.js'
 import { CONFIG } from './config.js';
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = '10.0 - Revert & Fix Scroll'; // バージョン番号を更新
+const VERSION = '9.8'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -26,13 +26,15 @@ const ui = {
     loadingText: null,
     uiContainer: null,
     gyroButton: null,
+    // ★★★ 変更点: トグルスイッチの参照を追加 ★★★
     toggleYaw: null,
     togglePitch: null,
 };
 
+// ★★★ 変更点: 設定を保持するオブジェクトを追加 ★★★
 const settings = {
-    invertYaw: false,
-    invertPitch: false,
+    invertYaw: false, // false: ノーマル, true: リバース
+    invertPitch: false, // false: ノーマル, true: リバース
 };
 
 
@@ -45,13 +47,11 @@ const player = {
 const input = {
     joystick: {
         active: false,
-        identifier: null,
         x: 0,
         y: 0,
     },
     touch: {
         active: false,
-        identifier: null,
         startX: 0,
         startY: 0,
     },
@@ -150,11 +150,14 @@ function setupEventListeners() {
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('orientationchange', checkScreenOrientation);
     
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: false });
-    window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    const joystickContainer = document.getElementById('joystick-container');
+    joystickContainer.addEventListener('touchstart', onJoystickStart, { passive: false });
+    joystickContainer.addEventListener('touchmove', onJoystickMove, { passive: false });
+    joystickContainer.addEventListener('touchend', onJoystickEnd);
 
+    window.addEventListener('touchstart', onTouchStart, { passive: false });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
 
     ui.gyroButton.addEventListener('click', () => {
         controls.connect();
@@ -179,6 +182,7 @@ function setupEventListeners() {
     ui.fullscreenButton.addEventListener('click', toggleFullscreen);
     document.addEventListener('fullscreenchange', updateFullscreenButton);
     
+    // ★★★ 変更点: トグルスイッチのイベントリスナーを追加 ★★★
     ui.toggleYaw.addEventListener('click', (e) => {
         if (e.target.classList.contains('toggle-option')) {
             settings.invertYaw = e.target.dataset.value === 'reverse';
@@ -194,6 +198,19 @@ function setupEventListeners() {
             e.target.classList.add('active');
         }
     });
+
+
+    ui.upButton.addEventListener('touchstart', () => { input.verticalMove = 1; });
+    ui.downButton.addEventListener('touchstart', () => { input.verticalMove = -1; });
+    ui.upButton.addEventListener('touchend', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('touchend', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+    ui.upButton.addEventListener('mousedown', () => { input.verticalMove = 1; });
+    ui.downButton.addEventListener('mousedown', () => { input.verticalMove = -1; });
+    ui.upButton.addEventListener('mouseup', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('mouseup', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+    ui.upButton.addEventListener('mouseleave', () => { if (input.verticalMove === 1) input.verticalMove = 0; });
+    ui.downButton.addEventListener('mouseleave', () => { if (input.verticalMove === -1) input.verticalMove = 0; });
+
 }
 
 function toggleFullscreen() {
@@ -227,111 +244,81 @@ function checkScreenOrientation() {
 }
 
 function onWindowResize() {
-    // This function is now mostly handled by the check in animate()
-    // but we keep it for orientation changes.
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
     checkScreenOrientation();
 }
 
-// --- マルチタッチ処理 ---
-function handleTouchStart(event) {
+// --- ジョイスティック操作 ---
+function onJoystickStart(event) {
     event.preventDefault();
-
-    for (const touch of event.changedTouches) {
-        if (touch.target.closest('#joystick-container') && !input.joystick.active) {
-            input.joystick.active = true;
-            input.joystick.identifier = touch.identifier;
-        }
-        else if (touch.target.closest('#up-button')) {
-            input.verticalMove = 1;
-        }
-        else if (touch.target.closest('#down-button')) {
-            input.verticalMove = -1;
-        }
-        else if (!input.touch.active) {
-            input.touch.active = true;
-            input.touch.identifier = touch.identifier;
-            input.touch.startX = touch.clientX;
-            input.touch.startY = touch.clientY;
-        }
-    }
+    input.joystick.active = true;
 }
 
-function handleTouchMove(event) {
+function onJoystickMove(event) {
     event.preventDefault();
-
-    for (const touch of event.changedTouches) {
-        if (touch.identifier === input.joystick.identifier) {
-            const rect = document.getElementById('joystick-container').getBoundingClientRect();
-            const x = (touch.clientX - rect.left - rect.width / 2);
-            const y = (touch.clientY - rect.top - rect.height / 2);
-            const distance = Math.sqrt(x*x + y*y);
-            const maxDistance = rect.width / 2;
-            const clampedX = (distance > maxDistance) ? x / distance * maxDistance : x;
-            const clampedY = (distance > maxDistance) ? y / distance * maxDistance : y;
-            document.getElementById('joystick-knob').style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-            input.joystick.x = clampedX / maxDistance;
-            input.joystick.y = clampedY / maxDistance;
-        }
-        else if (touch.identifier === input.touch.identifier) {
-            const deltaX = touch.clientX - input.touch.startX;
-            const deltaY = touch.clientY - input.touch.startY;
-
-            const yawDirection = settings.invertYaw ? -1 : 1;
-            const pitchDirection = settings.invertPitch ? -1 : 1;
-
-            controls.touchYaw += yawDirection * deltaX * 0.002;
-            controls.touchPitch += pitchDirection * deltaY * 0.002; 
-            
-            controls.touchPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchPitch));
-            
-            input.touch.startX = touch.clientX;
-            input.touch.startY = touch.clientY;
-        }
-    }
+    if (!input.joystick.active) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const touch = event.touches[0];
+    const x = (touch.clientX - rect.left - rect.width / 2);
+    const y = (touch.clientY - rect.top - rect.height / 2);
+    const distance = Math.sqrt(x*x + y*y);
+    const maxDistance = rect.width / 2;
+    const clampedX = (distance > maxDistance) ? x / distance * maxDistance : x;
+    const clampedY = (distance > maxDistance) ? y / distance * maxDistance : y;
+    document.getElementById('joystick-knob').style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+    input.joystick.x = clampedX / maxDistance;
+    input.joystick.y = clampedY / maxDistance;
 }
 
-function handleTouchEnd(event) {
-    event.preventDefault();
+function onJoystickEnd() {
+    input.joystick.active = false;
+    document.getElementById('joystick-knob').style.transform = `translate(0px, 0px)`;
+    input.joystick.x = 0;
+    input.joystick.y = 0;
+}
+
+// タッチによる視点操作のハンドラ
+function onTouchStart(event) {
+    if (event.target.closest('#joystick-container') || event.target.closest('#vertical-controls')) return;
     
-    for (const touch of event.changedTouches) {
-        if (touch.identifier === input.joystick.identifier) {
-            input.joystick.active = false;
-            input.joystick.identifier = null;
-            document.getElementById('joystick-knob').style.transform = `translate(0px, 0px)`;
-            input.joystick.x = 0;
-            input.joystick.y = 0;
-        }
-        else if (touch.identifier === input.touch.identifier) {
-            input.touch.active = false;
-            input.touch.identifier = null;
-        }
-    }
+    const touch = event.touches[0];
+    if (event.target.closest('#settings-button')) return;
+    
+    input.touch.active = true;
+    input.touch.startX = touch.clientX;
+    input.touch.startY = touch.clientY;
+}
 
-    // Stop vertical move if any of the up/down buttons were released
-    let verticalTouchStillActive = false;
-    for (const touch of event.touches) {
-        if (touch.target.closest('#up-button') || touch.target.closest('#down-button')) {
-            verticalTouchStillActive = true;
-            break;
-        }
-    }
-    if (!verticalTouchStillActive) {
-        input.verticalMove = 0;
-    }
+function onTouchMove(event) {
+    if (!input.touch.active) return;
+    
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - input.touch.startX;
+    const deltaY = touch.clientY - input.touch.startY;
+
+    // ★★★ 変更点: 設定に応じて回転方向を決定 ★★★
+    const yawDirection = settings.invertYaw ? 1 : -1;
+    const pitchDirection = settings.invertPitch ? 1 : -1;
+
+    controls.touchYaw += yawDirection * deltaX * 0.002;
+    controls.touchPitch += pitchDirection * deltaY * 0.002; 
+    
+    controls.touchPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, controls.touchPitch));
+    
+    input.touch.startX = touch.clientX;
+    input.touch.startY = touch.clientY;
+}
+
+function onTouchEnd() {
+    input.touch.active = false;
 }
 
 
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
-
-    const canvas = renderer.domElement;
-    if (canvas.clientWidth !== canvas.width || canvas.clientHeight !== canvas.height) {
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-        camera.aspect = canvas.clientWidth / canvas.clientHeight;
-        camera.updateProjectionMatrix();
-    }
-
     const deltaTime = clock.getDelta();
     controls.update();
 

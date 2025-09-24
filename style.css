@@ -1,8 +1,3 @@
-/* ★★★ 変更点: スクロール関連のブラウザ動作を無効化 ★★★ */
-html, body {
-    overscroll-behavior-y: none;
-}
-
 body {
     margin: 0;
     overflow: hidden;
@@ -33,13 +28,12 @@ canvas {
     left: 20px;
 }
 
-/* ★★★ 変更点: 安定したFlexboxレイアウトに戻す ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 30px;
     bottom: 30px;
     display: flex;
-    flex-direction: column-reverse; /* ジョイスティックが下、ボタンが上になるように */
+    flex-direction: column-reverse; /* ジョイスティックが下、ボタンが上に来るように */
     align-items: center;
     gap: 15px;
 }
@@ -211,7 +205,7 @@ canvas {
 .modal-body {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 15px; /* 項目間の隙間 */
 }
 
 .settings-item {
@@ -241,6 +235,7 @@ canvas {
     background-color: #555;
 }
 
+/* ★★★ 変更点: トグルスイッチのスタイルを追加 ★★★ */
 .toggle-switch {
     display: flex;
     border: 1px solid #555;
@@ -262,6 +257,7 @@ canvas {
     background-color: #007aff;
     color: white;
 }
+
 
 .hidden {
     display: none !important;

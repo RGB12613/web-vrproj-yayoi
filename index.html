@@ -15,38 +15,49 @@
     </script>
 </head>
 <body>
+    <!-- ローディング画面 -->
     <div id="loading-screen">
-        <div id="loading-text">Loading...</div>
+        <div id="loading-text">0%</div>
         <div id="progress-bar-container">
             <div id="progress-bar"></div>
         </div>
     </div>
 
+    <!-- ジャイロ有効化ボタン (最初は表示) -->
+    <button id="gyro-button">ジャイロセンサーを有効化</button>
+
+    <!-- メインUI (最初は非表示) -->
     <div id="ui-container" class="hidden">
+        
+        <!-- 左上のUI -->
         <div id="top-left-controls">
-            <button id="settings-button" aria-label="Settings">
+            <button id="settings-button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.23C14.38,2,14.17,1.84,13.92,1.84 h-3.84c-0.25,0-0.46,0.16-0.48,0.39L9.2,5.59C8.6,5.83,8.08,6.15,7.58,6.53L5.19,5.57C4.97,5.49,4.72,5.57,4.6,5.78L2.68,9.1 c-0.12,0.2-0.07,0.47,0.12,0.61l2.03,1.58C4.78,11.64,4.76,11.96,4.76,12.29s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.39,2.93 c0.02,0.24,0.23,0.4,0.48,0.4h3.84c0.25,0,0.46-0.16,0.48-0.39l0.39-2.93c0.6-0.24,1.12-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.2,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    <path d="M12 1L12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 9.49533 4.25997 7.24348 6 5.87085L4.5 4.5C2.55569 6.24898 1.5 8.97451 1.5 12C1.5 17.799 6.20101 22.5 12 22.5C17.799 22.5 22.5 17.799 22.5 12C22.5 6.20101 17.799 1.5 12 1.5L12 4L10 2.5L12 1Z" />
+                    <path d="M12 7C14.7614 7 17 9.23858 17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7ZM12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9Z" />
                 </svg>
             </button>
         </div>
-        
+
+        <!-- 左下のUI -->
         <div id="bottom-left-controls">
             <div id="vertical-controls">
-                <button id="up-button" class="vertical-button">▲</button>
-                <button id="down-button" class="vertical-button">▼</button>
+                <div id="up-button" class="vertical-button">▲</div>
+                <div id="down-button" class="vertical-button">▼</div>
             </div>
             <div id="joystick-container">
                 <div id="joystick-knob"></div>
             </div>
         </div>
 
+        <!-- 右下のUI -->
         <div id="version-display"></div>
     </div>
-
-    <button id="gyro-button" class="hidden">ジャイロセンサーを有効化</button>
-    <div id="orientation-warning">画面を横にしてください</div>
     
+    <!-- 縦画面警告 -->
+    <div id="orientation-warning">画面を横にしてください</div>
+
+    <!-- 設定モーダル (最初は非表示) -->
     <div id="settings-modal-overlay" class="hidden">
         <div id="settings-modal">
             <div class="modal-header">
@@ -55,21 +66,22 @@
             </div>
             <div class="modal-body">
                 <div class="settings-item">
-                    <button id="reset-view-button" class="modal-button">視点のリセット</button>
+                    <button id="reset-view-button" class="modal-button">視点をリセット</button>
                 </div>
                 <div class="settings-item">
                      <button id="fullscreen-button" class="modal-button">フルスクリーン表示</button>
                 </div>
+                <!-- ★★★ 変更点: トグルスイッチUIを追加 ★★★ -->
                 <div class="settings-item">
-                    <label for="toggle-yaw">左右スワイプ</label>
-                    <div class="toggle-switch" id="toggle-yaw">
+                    <label>左右スワイプ</label>
+                    <div id="toggle-yaw" class="toggle-switch">
                         <div class="toggle-option active" data-value="normal">ノーマル</div>
                         <div class="toggle-option" data-value="reverse">リバース</div>
                     </div>
                 </div>
                 <div class="settings-item">
-                    <label for="toggle-pitch">上下スワイプ</label>
-                    <div class="toggle-switch" id="toggle-pitch">
+                    <label>上下スワイプ</label>
+                    <div id="toggle-pitch" class="toggle-switch">
                         <div class="toggle-option active" data-value="normal">ノーマル</div>
                         <div class="toggle-option" data-value="reverse">リバース</div>
                     </div>
@@ -77,7 +89,7 @@
             </div>
         </div>
     </div>
-    
+
     <script type="module" src="main.js"></script>
 </body>
 </html>
