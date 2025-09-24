@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from './DeviceOrientationControls.local.js'
 import { CONFIG } from './config.js';
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = '9.3"; // バージョン番号を更新
+const VERSION = "9.3"; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
