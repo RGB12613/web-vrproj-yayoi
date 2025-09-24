@@ -1,16 +1,17 @@
 import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-// ★★★ 変更点: 新しい設定ファイルをインポート ★★★
 import { CONFIG } from './config.js';
+// ★★★ 変更点: 新しいSceneManagerをインポート ★★★
+import { SceneManager } from './sceneManager.js';
 
-const VERSION = '8.3 - Config File'; // バージョン番号を更新
+const VERSION = '8.5 - Refactor'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
 let versionDisplay;
 let orientationWarning;
 let controls;
+let sceneManager; // ★★★ 変更点: SceneManagerのインスタンスを保持する変数 ★★★
 
 const ui = {
     settingsButton: null,
@@ -62,19 +63,10 @@ function init() {
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     scene.add(camera);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 0).normalize();
-    scene.add(directionalLight);
+    // ★★★ 変更点: SceneManagerをインスタンス化し、ライト設定を委任 ★★★
+    sceneManager = new SceneManager(scene);
+    sceneManager.setupLights();
 
-    /*
-    const floorGeometry = new THREE.PlaneGeometry(200, 200);
-    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x999999 });
-    floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-    */
 
     // UI要素の取得
     versionDisplay = document.getElementById('version-display');
@@ -92,25 +84,14 @@ function init() {
     ui.uiContainer = document.getElementById('ui-container');
     ui.gyroButton = document.getElementById('gyro-button');
 
-    const loader = new GLTFLoader();
     
-    // ★★★ 変更点: 設定ファイルからURLを読み込む ★★★
+    // ★★★ 変更点: モデル読み込みをSceneManagerに委任 ★★★
     const glbPath = CONFIG.ASSET_URL;
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
-    loader.load(
+    sceneManager.loadModel(
         glbPath,
-        function (gltf) {
-            scene.add(gltf.scene);
-            console.log('GLB model loaded successfully.');
-            
-            ui.loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                ui.loadingScreen.classList.add('hidden');
-                ui.uiContainer.classList.remove('hidden');
-                ui.gyroButton.classList.remove('hidden');
-            }, 500);
-        },
+        // onProgress (読み込み中)
         function (xhr) {
             if (xhr.lengthComputable && xhr.total > 0) {
                 const percentComplete = xhr.loaded / xhr.total * 100;
@@ -121,6 +102,18 @@ function init() {
                 ui.loadingText.textContent = `Loading... (${mbLoaded} MB)`;
             }
         },
+        // onLoad (成功時)
+        function (gltf) {
+            console.log('GLB model loaded successfully.');
+            
+            ui.loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                ui.loadingScreen.classList.add('hidden');
+                ui.uiContainer.classList.remove('hidden');
+                ui.gyroButton.classList.remove('hidden');
+            }, 500);
+        },
+        // onError (失敗時)
         function (error) {
             console.error('An error happened while loading the GLB model:', error);
             ui.loadingText.textContent = 'モデルの読み込みに失敗しました';
