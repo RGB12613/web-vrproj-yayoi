@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// ★★★ 変更点: 新しい設定ファイルをインポート ★★★
+import { CONFIG } from './config.js';
 
-const VERSION = '8.1 - R2 Final Path'; // バージョン番号を更新
+const VERSION = '8.3 - Config File'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -92,8 +94,8 @@ function init() {
 
     const loader = new GLTFLoader();
     
-    // ★★★ 変更点: Cloudflare R2の完全な公開URLに修正 ★★★
-    const glbPath = 'https://14a62f6ef5eacf6700b9096a2b0e283f.r2.cloudflarestorage.com/shinchoku-web-vr-yayoi-assets/field.glb';
+    // ★★★ 変更点: 設定ファイルからURLを読み込む ★★★
+    const glbPath = CONFIG.ASSET_URL;
     console.log(`Attempting to load GLB from: ${glbPath}`);
 
     loader.load(
