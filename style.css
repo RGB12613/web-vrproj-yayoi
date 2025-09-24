@@ -1,22 +1,16 @@
+/* ★★★ 変更点: スクロール関連のブラウザ動作を無効化 ★★★ */
 html, body {
-    overscroll-behavior-y: none; /* Pull-to-refreshなどのスクロール関連動作を無効化 */
+    overscroll-behavior-y: none;
 }
 
 body {
     margin: 0;
     overflow: hidden;
     font-family: sans-serif;
-    /* position: fixed; を削除 */
 }
 
-/* ★★★ 変更点: canvas自体を背景として固定し、UIの下に配置 ★★★ */
 canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1; /* すべてのUI要素の背面に配置 */
+    display: block;
 }
 
 /* --- UI Controls --- */
@@ -39,12 +33,13 @@ canvas {
     left: 20px;
 }
 
+/* ★★★ 変更点: 安定したFlexboxレイアウトに戻す ★★★ */
 #bottom-left-controls {
     position: fixed;
     left: 30px;
     bottom: 30px;
     display: flex;
-    flex-direction: column-reverse; 
+    flex-direction: column-reverse; /* ジョイスティックが下、ボタンが上になるように */
     align-items: center;
     gap: 15px;
 }
@@ -72,7 +67,6 @@ canvas {
     flex-direction: column;
     gap: 10px;
 }
-
 
 .vertical-button {
     width: 50px;
@@ -268,7 +262,6 @@ canvas {
     background-color: #007aff;
     color: white;
 }
-
 
 .hidden {
     display: none !important;

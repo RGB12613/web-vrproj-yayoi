@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from './DeviceOrientationControls.local.js'
 import { CONFIG } from './config.js';
 import { SceneManager } from './sceneManager.js';
 
-const VERSION = '9.9 - Final CSS Fix'; // バージョン番号を更新
+const VERSION = '10.0 - Revert & Fix Scroll'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
