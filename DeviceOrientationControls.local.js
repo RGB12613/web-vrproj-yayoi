@@ -70,14 +70,13 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 			quaternion.multiply(_q1); // camera looks out the back of the device, not the top
 			quaternion.multiply(_q0.setFromAxisAngle(_zee, -orient)); // adjust for screen orientation
 			
-			// ジャイロの回転を計算した後に、タッチによる回転を合成
-			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), scope.touchYaw);
+			// ★★★ 変更点: 左右回転の向きを元に戻すため、角度を反転 ★★★
+			const qTouchYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -scope.touchYaw);
 			const qTouchPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), scope.touchPitch);
 
-			// ヨー（左右）のタッチ回転をワールドY軸基準で適用
-			quaternion.premultiply(qTouchYaw);
-			// ピッチ（上下）のタッチ回転をカメラのローカルX軸基準で適用
+			// ワールドY軸基準のヨー回転を先に適用し、次にローカルX軸基準のピッチ回転を適用
 			quaternion.multiply(qTouchPitch);
+			quaternion.premultiply(qTouchYaw);
 
 		};
 
@@ -154,7 +153,6 @@ class DeviceOrientationControls extends THREE.EventDispatcher {
 
 		};
 		
-		// ★★★ 変更点: 視点のリセット機能を、以前の安定したバージョンに戻す ★★★
 		this.resetView = function () {
 			// タッチによるオフセットをリセット
 			scope.touchYaw = 0;
