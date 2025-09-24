@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DeviceOrientationControls } from './DeviceOrientationControls.local.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const VERSION = '7.7 - Depth Test Fix'; // バージョン番号を更新
+const VERSION = '7.8 - Resize Fix'; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -98,12 +98,9 @@ function init() {
     loader.load(
         glbPath,
         function (gltf) {
-            // ★★★ 変更点: 深度の問題を解決するため、全マテリアルを強制的に不透明として扱う ★★★
             gltf.scene.traverse(function (object) {
                 if (object.isMesh && object.material) {
-                    // 透明設定を無効化
                     object.material.transparent = false;
-                    // 深度バッファへの書き込みを強制的に有効化
                     object.material.depthWrite = true;
                 }
             });
@@ -305,6 +302,17 @@ function onTouchEnd() {
 // --- アニメーションループ ---
 function animate() {
     requestAnimationFrame(animate);
+
+    // ★★★ 変更点: 毎フレーム、描画領域のリサイズが必要かチェック ★★★
+    const canvas = renderer.domElement;
+    // CSSによる表示サイズと、内部の描画バッファサイズを比較
+    if (canvas.clientWidth !== canvas.width || canvas.clientHeight !== canvas.height) {
+        // リサイズが必要な場合、レンダラーとカメラを更新
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+    }
+
     const deltaTime = clock.getDelta();
     controls.update();
     updatePlayer(deltaTime);
