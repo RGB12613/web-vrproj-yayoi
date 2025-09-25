@@ -153,7 +153,7 @@ function setupEventListeners() {
   window.addEventListener("orientationchange", checkScreenOrientation);
 
   // --- ジャイロはユーザーのアクションをきっかけにする
-  gyroButton.addEventListener('click', () => {
+  ui.gyroButton.addEventListener('click', () => {
     controls.connect();
     startButton.style.display = 'none';
   }, false);

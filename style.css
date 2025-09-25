@@ -94,7 +94,6 @@ canvas {
     font-size: 18px;
     cursor: pointer;
     z-index: 201;
-    /* ★★★ 修正(1): 10から201に変更 ★★★ */
 }
 
 #orientation-warning,
@@ -281,15 +280,6 @@ canvas {
 .toggle-option,
 #joystick-container {
     touch-action: auto;
-}
-
-#settings-button:active,
-.vertical-button:active,
-.modal-button:active,
-.toggle-option:active,
-#close-modal-button:active,
-#gyro-button:active {
-    transform: scale(0.95);
 }
 
 /* --- On-Screen Debug Console --- */
