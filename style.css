@@ -205,6 +205,8 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 15px; /* 項目間の隙間 */
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 .settings-item {
