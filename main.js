@@ -249,35 +249,42 @@ function onWindowResize() {
 }
 
 function onTouchStart(event) {
-  // ★★★ 関数冒頭の event.preventDefault() を削除 ★★★
-
   const touches = event.changedTouches;
 
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
+    const target = touch.target;
 
-    // ジョイスティックの領域か判定
-    if (touch.target.closest("#joystick-container") && input.joystick.id === null) {
-      event.preventDefault(); // ★★★ ジョイスティック操作の場合だけここで呼び出す ★★★
+    // --- 各タッチの役割を判別 ---
+
+    // 1. ジョイスティック操作か？
+    if (target.closest("#joystick-container") && input.joystick.id === null) {
+      event.preventDefault();
       input.joystick.active = true;
       input.joystick.id = touch.identifier;
       updateJoystick(touch);
-      continue;
+      continue; // このタッチの処理は完了
     }
 
-    // UIボタン類でなければ視点操作として扱う
+    // 2. 他のUIボタン類（自身のイベントリスナーを持つ要素）へのタッチか？
     if (
-      !touch.target.closest("#bottom-left-controls") &&
-      !touch.target.closest("#top-left-controls") &&
-      !touch.target.closest("#settings-modal-overlay") && // モーダルも除外
-      input.touch.id === null
+      target.closest("#gyro-button") ||
+      target.closest("#top-left-controls") ||
+      target.closest("#vertical-controls") ||
+      target.closest("#settings-modal-overlay")
     ) {
-      event.preventDefault(); // ★★★ 視点操作の場合だけここで呼び出す ★★★
+      // 何もせず、各要素のpointerdownイベントに任せる
+      continue; // このタッチの処理は完了
+    }
+
+    // 3. 上記のいずれでもないなら、視点操作用のタッチとする
+    if (input.touch.id === null) {
+      event.preventDefault();
       input.touch.active = true;
       input.touch.id = touch.identifier;
       input.touch.startX = touch.clientX;
       input.touch.startY = touch.clientY;
-      continue;
+      continue; // このタッチの処理は完了
     }
   }
 }

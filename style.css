@@ -1,3 +1,8 @@
+:root {
+    /* ★★★ CSS変数を定義 ★★★ */
+    --joystick-size: 120px;
+}
+
 body {
     margin: 0;
     overflow: hidden;
@@ -41,8 +46,8 @@ canvas {
 }
 
 #joystick-container {
-    width: 120px;
-    height: 120px;
+    width: var(--joystick-size);
+    height: var(--joystick-size);
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     display: flex;
@@ -51,8 +56,8 @@ canvas {
 }
 
 #joystick-knob {
-    width: 60px;
-    height: 60px;
+    width: calc(var(--joystick-size) / 2);
+    height: calc(var(--joystick-size) / 2);
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 50%;
     transition: transform 0.1s;
@@ -80,10 +85,6 @@ canvas {
     user-select: none;
 }
 
-.vertical-button:active {
-    background-color: rgba(255, 255, 255, 0.5);
-}
-
 #gyro-button {
     position: fixed;
     top: 50%;
@@ -92,7 +93,7 @@ canvas {
     padding: 15px 30px;
     font-size: 18px;
     cursor: pointer;
-    z-index: 10;
+    z-index: 201; /* ★★★ 修正(1): 10から201に変更 ★★★ */
 }
 
 #orientation-warning,
@@ -212,7 +213,7 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    /* 項目間の隙間 */
+    overflow-y: auto; /* ★★★ 修正(2): この行を追加 ★★★ */
 }
 
 .settings-item {
@@ -242,7 +243,6 @@ canvas {
     background-color: #555;
 }
 
-/* ★★★ 変更点: トグルスイッチのスタイルを追加 ★★★ */
 .toggle-switch {
     display: flex;
     border: 1px solid #555;
@@ -271,7 +271,6 @@ canvas {
 }
 
 /* --- タッチ操作の有効化 --- */
-/* body全体で無効化したタッチ操作を、ボタン類に限って有効に戻す */
 #gyro-button,
 #settings-button,
 .vertical-button,
@@ -280,4 +279,23 @@ canvas {
 .toggle-option,
 #joystick-container {
     touch-action: auto;
+}
+
+/* ★★★ 改善案: UIの操作感を向上させる ★★★ */
+#settings-button,
+.vertical-button,
+.modal-button,
+.toggle-option,
+#close-modal-button,
+#gyro-button {
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+#settings-button:active,
+.vertical-button:active,
+.modal-button:active,
+.toggle-option:active,
+#close-modal-button:active,
+#gyro-button:active {
+    transform: scale(0.95);
 }
