@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from "./DeviceOrientationControls.local.js"
 import { CONFIG } from "./config.js";
 import { SceneManager } from "./sceneManager.js";
 
-const VERSION = "10.3.6"; // バージョン番号を更新
+const VERSION = "__VERSION_PLACEHOLDER__";
 
 let scene, camera, renderer, clock;
 let floor;
