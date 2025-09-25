@@ -33,7 +33,7 @@ canvas {
     left: 30px;
     bottom: 30px;
     display: flex;
-    flex-direction: column-reverse; /* ジョイスティックが下、ボタンが上に来るように */
+    flex-direction: column;
     align-items: center;
     gap: 15px;
 }
