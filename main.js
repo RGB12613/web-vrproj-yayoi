@@ -140,7 +140,7 @@ function init() {
 }
 
 function updateVersionDisplay() {
-  versionDisplay.innerHTML = `v${VERSION}`;
+  versionDisplay.innerHTML = `${VERSION}`;
 }
 
 // --- イベントリスナーの設定 ---
@@ -249,27 +249,30 @@ function onWindowResize() {
 }
 
 function onTouchStart(event) {
-  event.preventDefault();
+  // ★★★ 関数冒頭の event.preventDefault() を削除 ★★★
+
   const touches = event.changedTouches;
 
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
 
-    if (
-      touch.target.closest("#joystick-container") &&
-      input.joystick.id === null
-    ) {
+    // ジョイスティックの領域か判定
+    if (touch.target.closest("#joystick-container") && input.joystick.id === null) {
+      event.preventDefault(); // ★★★ ジョイスティック操作の場合だけここで呼び出す ★★★
       input.joystick.active = true;
       input.joystick.id = touch.identifier;
       updateJoystick(touch);
       continue;
     }
 
+    // UIボタン類でなければ視点操作として扱う
     if (
       !touch.target.closest("#bottom-left-controls") &&
       !touch.target.closest("#top-left-controls") &&
+      !touch.target.closest("#settings-modal-overlay") && // モーダルも除外
       input.touch.id === null
     ) {
+      event.preventDefault(); // ★★★ 視点操作の場合だけここで呼び出す ★★★
       input.touch.active = true;
       input.touch.id = touch.identifier;
       input.touch.startX = touch.clientX;
