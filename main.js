@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from "./DeviceOrientationControls.local.js"
 import { CONFIG } from "./config.js";
 import { SceneManager } from "./sceneManager.js";
 
-const VERSION = "10.1.4"; // バージョン番号を更新
+const VERSION = "10.1.5"; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -41,17 +41,16 @@ const player = {
   direction: new THREE.Vector3(),
 };
 
-// ★★★ 変更点: 各タッチのIDを保持するように変更 ★★★
 const input = {
   joystick: {
     active: false,
-    id: null, // ジョイスティック操作中のタッチID
+    id: null,
     x: 0,
     y: 0,
   },
   touch: {
     active: false,
-    id: null, // 視点操作中のタッチID
+    id: null,
     startX: 0,
     startY: 0,
   },
@@ -147,7 +146,6 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
-  // ★★★ 変更点: 全てのタッチイベントをwindowで一元管理 ★★★
   window.addEventListener("touchstart", onTouchStart, { passive: false });
   window.addEventListener("touchmove", onTouchMove, { passive: false });
   window.addEventListener("touchend", onTouchEnd, { passive: false });
@@ -197,7 +195,6 @@ function setupEventListeners() {
     }
   });
   
-  // 上下ボタンのリスナー (mousedown/upはPCデバッグ用)
   const setupButtonEvents = (button, value) => {
     const start = () => input.verticalMove = value;
     const end = () => { if (input.verticalMove === value) input.verticalMove = 0; };
@@ -248,8 +245,6 @@ function onWindowResize() {
   checkScreenOrientation();
 }
 
-// ★★★ 変更点: マルチタッチ対応のイベントハンドラ群 ★★★
-
 function onTouchStart(event) {
   event.preventDefault();
   const touches = event.changedTouches;
@@ -257,15 +252,13 @@ function onTouchStart(event) {
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
 
-    // ジョイスティックの領域か判定
     if (touch.target.closest("#joystick-container") && input.joystick.id === null) {
       input.joystick.active = true;
       input.joystick.id = touch.identifier;
-      updateJoystick(touch); // 開始位置で一度更新
+      updateJoystick(touch);
       continue;
     }
 
-    // UIボタン類でなければ視点操作として扱う
     if (
       !touch.target.closest("#bottom-left-controls") &&
       !touch.target.closest("#top-left-controls") &&
@@ -288,22 +281,21 @@ function onTouchMove(event) {
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
 
-    // ジョイスティック操作の更新
     if (touch.identifier === input.joystick.id) {
       updateJoystick(touch);
       continue;
     }
 
-    // 視点操作の更新
     if (touch.identifier === input.touch.id) {
       const deltaX = touch.clientX - input.touch.startX;
       const deltaY = touch.clientY - input.touch.startY;
+      
+      // ★★★ 修正点: 元の視点操作ロジックに戻しました ★★★
+      const yawDirection = settings.invertYaw ? -1 : 1;
+      const pitchDirection = settings.invertPitch ? -1 : 1;
 
-      const yawDirection = settings.invertYaw ? 1 : -1;
-      const pitchDirection = settings.invertPitch ? 1 : -1;
-
-      controls.touchYaw -= yawDirection * deltaX * 0.002;
-      controls.touchPitch -= pitchDirection * deltaY * 0.002;
+      controls.touchYaw += yawDirection * deltaX * 0.002;
+      controls.touchPitch += pitchDirection * deltaY * 0.002;
 
       controls.touchPitch = Math.max(
         -Math.PI / 2,
@@ -324,7 +316,6 @@ function onTouchEnd(event) {
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
 
-    // ジョイスティック操作の終了
     if (touch.identifier === input.joystick.id) {
       input.joystick.active = false;
       input.joystick.id = null;
@@ -334,7 +325,6 @@ function onTouchEnd(event) {
       continue;
     }
 
-    // 視点操作の終了
     if (touch.identifier === input.touch.id) {
       input.touch.active = false;
       input.touch.id = null;
@@ -343,7 +333,6 @@ function onTouchEnd(event) {
   }
 }
 
-// ジョイスティックの更新処理を共通化
 function updateJoystick(touch) {
     const container = document.getElementById("joystick-container");
     const rect = container.getBoundingClientRect();
@@ -361,8 +350,6 @@ function updateJoystick(touch) {
     input.joystick.y = clampedY / maxDistance;
 }
 
-
-// --- アニメーションループ ---
 function animate() {
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
@@ -376,12 +363,12 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// --- プレイヤーの移動更新 ---
 function updatePlayer(deltaTime) {
+  // ★★★ 修正点: 元の移動方向ロジックに戻しました ★★★
   const moveDirection = new THREE.Vector3(
     input.joystick.x,
     0,
-    -input.joystick.y // Y軸を反転（奥がZ-）
+    input.joystick.y
   );
   if (moveDirection.length() > 0.01) {
     const moveQuaternion = new THREE.Quaternion();
