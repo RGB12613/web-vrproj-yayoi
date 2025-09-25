@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from "./DeviceOrientationControls.local.js"
 import { CONFIG } from "./config.js";
 import { SceneManager } from "./sceneManager.js";
 
-const VERSION = "10.1.3"; // バージョン番号を更新
+const VERSION = "10.1.4"; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -26,15 +26,13 @@ const ui = {
   loadingText: null,
   uiContainer: null,
   gyroButton: null,
-  // ★★★ 変更点: トグルスイッチの参照を追加 ★★★
   toggleYaw: null,
   togglePitch: null,
 };
 
-// ★★★ 変更点: 設定を保持するオブジェクトを追加 ★★★
 const settings = {
-  invertYaw: false, // false: ノーマル, true: リバース
-  invertPitch: false, // false: ノーマル, true: リバース
+  invertYaw: false,
+  invertPitch: false,
 };
 
 const player = {
@@ -43,14 +41,17 @@ const player = {
   direction: new THREE.Vector3(),
 };
 
+// ★★★ 変更点: 各タッチのIDを保持するように変更 ★★★
 const input = {
   joystick: {
     active: false,
+    id: null, // ジョイスティック操作中のタッチID
     x: 0,
     y: 0,
   },
   touch: {
     active: false,
+    id: null, // 視点操作中のタッチID
     startX: 0,
     startY: 0,
   },
@@ -104,8 +105,7 @@ function init() {
 
   sceneManager.loadModel(
     glbPath,
-    // onProgress (読み込み中)
-    function (xhr) {
+    (xhr) => {
       if (xhr.lengthComputable && xhr.total > 0) {
         const percentComplete = (xhr.loaded / xhr.total) * 100;
         ui.progressBar.style.width = percentComplete + "%";
@@ -115,10 +115,8 @@ function init() {
         ui.loadingText.textContent = `Loading... (${mbLoaded} MB)`;
       }
     },
-    // onLoad (成功時)
-    function (gltf) {
+    (gltf) => {
       console.log("GLB model loaded successfully.");
-
       ui.loadingScreen.style.opacity = "0";
       setTimeout(() => {
         ui.loadingScreen.classList.add("hidden");
@@ -126,8 +124,7 @@ function init() {
         ui.gyroButton.classList.remove("hidden");
       }, 500);
     },
-    // onError (失敗時)
-    function (error) {
+    (error) => {
       console.error("An error happened while loading the GLB model:", error);
       ui.loadingText.textContent = "モデルの読み込みに失敗しました";
     }
@@ -141,7 +138,6 @@ function init() {
   animate();
 }
 
-// --- UI要素の更新 ---
 function updateVersionDisplay() {
   versionDisplay.innerHTML = `v${VERSION}`;
 }
@@ -151,18 +147,12 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
-  const joystickContainer = document.getElementById("joystick-container");
-  joystickContainer.addEventListener("touchstart", onJoystickStart, {
-    passive: false,
-  });
-  joystickContainer.addEventListener("touchmove", onJoystickMove, {
-    passive: false,
-  });
-  joystickContainer.addEventListener("touchend", onJoystickEnd);
-
+  // ★★★ 変更点: 全てのタッチイベントをwindowで一元管理 ★★★
   window.addEventListener("touchstart", onTouchStart, { passive: false });
   window.addEventListener("touchmove", onTouchMove, { passive: false });
-  window.addEventListener("touchend", onTouchEnd);
+  window.addEventListener("touchend", onTouchEnd, { passive: false });
+  window.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
 
   ui.gyroButton.addEventListener("click", () => {
     controls.connect();
@@ -191,7 +181,6 @@ function setupEventListeners() {
   ui.fullscreenButton.addEventListener("click", toggleFullscreen);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
 
-  // ★★★ 変更点: トグルスイッチのイベントリスナーを追加 ★★★
   ui.toggleYaw.addEventListener("click", (e) => {
     if (e.target.classList.contains("toggle-option")) {
       settings.invertYaw = e.target.dataset.value === "reverse";
@@ -207,37 +196,19 @@ function setupEventListeners() {
       e.target.classList.add("active");
     }
   });
-
-  ui.upButton.addEventListener("touchstart", () => {
-    input.verticalMove = 1;
-  });
-  ui.downButton.addEventListener("touchstart", () => {
-    input.verticalMove = -1;
-  });
-  ui.upButton.addEventListener("touchend", () => {
-    if (input.verticalMove === 1) input.verticalMove = 0;
-  });
-  ui.downButton.addEventListener("touchend", () => {
-    if (input.verticalMove === -1) input.verticalMove = 0;
-  });
-  ui.upButton.addEventListener("mousedown", () => {
-    input.verticalMove = 1;
-  });
-  ui.downButton.addEventListener("mousedown", () => {
-    input.verticalMove = -1;
-  });
-  ui.upButton.addEventListener("mouseup", () => {
-    if (input.verticalMove === 1) input.verticalMove = 0;
-  });
-  ui.downButton.addEventListener("mouseup", () => {
-    if (input.verticalMove === -1) input.verticalMove = 0;
-  });
-  ui.upButton.addEventListener("mouseleave", () => {
-    if (input.verticalMove === 1) input.verticalMove = 0;
-  });
-  ui.downButton.addEventListener("mouseleave", () => {
-    if (input.verticalMove === -1) input.verticalMove = 0;
-  });
+  
+  // 上下ボタンのリスナー (mousedown/upはPCデバッグ用)
+  const setupButtonEvents = (button, value) => {
+    const start = () => input.verticalMove = value;
+    const end = () => { if (input.verticalMove === value) input.verticalMove = 0; };
+    button.addEventListener("touchstart", start);
+    button.addEventListener("touchend", end);
+    button.addEventListener("mousedown", start);
+    button.addEventListener("mouseup", end);
+    button.addEventListener("mouseleave", end);
+  };
+  setupButtonEvents(ui.upButton, 1);
+  setupButtonEvents(ui.downButton, -1);
 }
 
 function toggleFullscreen() {
@@ -262,7 +233,6 @@ function updateFullscreenButton() {
   }
 }
 
-// --- 各種イベントハンドラ ---
 function checkScreenOrientation() {
   if (window.innerHeight > window.innerWidth) {
     orientationWarning.style.display = "flex";
@@ -278,81 +248,119 @@ function onWindowResize() {
   checkScreenOrientation();
 }
 
-// --- ジョイスティック操作 ---
-function onJoystickStart(event) {
-  event.preventDefault();
-  input.joystick.active = true;
-}
+// ★★★ 変更点: マルチタッチ対応のイベントハンドラ群 ★★★
 
-function onJoystickMove(event) {
-  event.preventDefault();
-  if (!input.joystick.active) return;
-  const rect = event.currentTarget.getBoundingClientRect();
-  const touch = event.touches[0];
-  const x = touch.clientX - rect.left - rect.width / 2;
-  const y = touch.clientY - rect.top - rect.height / 2;
-  const distance = Math.sqrt(x * x + y * y);
-  const maxDistance = rect.width / 2;
-  const clampedX = distance > maxDistance ? (x / distance) * maxDistance : x;
-  const clampedY = distance > maxDistance ? (y / distance) * maxDistance : y;
-  document.getElementById(
-    "joystick-knob"
-  ).style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-  input.joystick.x = clampedX / maxDistance;
-  input.joystick.y = clampedY / maxDistance;
-}
-
-function onJoystickEnd() {
-  input.joystick.active = false;
-  document.getElementById(
-    "joystick-knob"
-  ).style.transform = `translate(0px, 0px)`;
-  input.joystick.x = 0;
-  input.joystick.y = 0;
-}
-
-// タッチによる視点操作のハンドラ
 function onTouchStart(event) {
-  if (
-    event.target.closest("#joystick-container") ||
-    event.target.closest("#vertical-controls")
-  )
-    return;
+  event.preventDefault();
+  const touches = event.changedTouches;
 
-  const touch = event.touches[0];
-  if (event.target.closest("#settings-button")) return;
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
 
-  input.touch.active = true;
-  input.touch.startX = touch.clientX;
-  input.touch.startY = touch.clientY;
+    // ジョイスティックの領域か判定
+    if (touch.target.closest("#joystick-container") && input.joystick.id === null) {
+      input.joystick.active = true;
+      input.joystick.id = touch.identifier;
+      updateJoystick(touch); // 開始位置で一度更新
+      continue;
+    }
+
+    // UIボタン類でなければ視点操作として扱う
+    if (
+      !touch.target.closest("#bottom-left-controls") &&
+      !touch.target.closest("#top-left-controls") &&
+      input.touch.id === null
+    ) {
+      input.touch.active = true;
+      input.touch.id = touch.identifier;
+      input.touch.startX = touch.clientX;
+      input.touch.startY = touch.clientY;
+      continue;
+    }
+  }
 }
+
 
 function onTouchMove(event) {
-  if (!input.touch.active) return;
+  event.preventDefault();
+  const touches = event.changedTouches;
 
-  const touch = event.touches[0];
-  const deltaX = touch.clientX - input.touch.startX;
-  const deltaY = touch.clientY - input.touch.startY;
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
 
-  // ★★★ 変更点: 設定に応じて回転方向を決定 ★★★
-  const yawDirection = settings.invertYaw ? -1 : 1;
-  const pitchDirection = settings.invertPitch ? -1 : 1;
+    // ジョイスティック操作の更新
+    if (touch.identifier === input.joystick.id) {
+      updateJoystick(touch);
+      continue;
+    }
 
-  controls.touchYaw += yawDirection * deltaX * 0.002;
-  controls.touchPitch += pitchDirection * deltaY * 0.002;
+    // 視点操作の更新
+    if (touch.identifier === input.touch.id) {
+      const deltaX = touch.clientX - input.touch.startX;
+      const deltaY = touch.clientY - input.touch.startY;
 
-  controls.touchPitch = Math.max(
-    -Math.PI / 2,
-    Math.min(Math.PI / 2, controls.touchPitch)
-  );
+      const yawDirection = settings.invertYaw ? 1 : -1;
+      const pitchDirection = settings.invertPitch ? 1 : -1;
 
-  input.touch.startX = touch.clientX;
-  input.touch.startY = touch.clientY;
+      controls.touchYaw -= yawDirection * deltaX * 0.002;
+      controls.touchPitch -= pitchDirection * deltaY * 0.002;
+
+      controls.touchPitch = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, controls.touchPitch)
+      );
+
+      input.touch.startX = touch.clientX;
+      input.touch.startY = touch.clientY;
+      continue;
+    }
+  }
 }
 
-function onTouchEnd() {
-  input.touch.active = false;
+function onTouchEnd(event) {
+  event.preventDefault();
+  const touches = event.changedTouches;
+
+  for (let i = 0; i < touches.length; i++) {
+    const touch = touches[i];
+
+    // ジョイスティック操作の終了
+    if (touch.identifier === input.joystick.id) {
+      input.joystick.active = false;
+      input.joystick.id = null;
+      document.getElementById("joystick-knob").style.transform = `translate(0px, 0px)`;
+      input.joystick.x = 0;
+      input.joystick.y = 0;
+      continue;
+    }
+
+    // 視点操作の終了
+    if (touch.identifier === input.touch.id) {
+      input.touch.active = false;
+      input.touch.id = null;
+      continue;
+    }
+  }
 }
+
+// ジョイスティックの更新処理を共通化
+function updateJoystick(touch) {
+    const container = document.getElementById("joystick-container");
+    const rect = container.getBoundingClientRect();
+    
+    const x = touch.clientX - rect.left - rect.width / 2;
+    const y = touch.clientY - rect.top - rect.height / 2;
+    const distance = Math.sqrt(x * x + y * y);
+    const maxDistance = rect.width / 2;
+
+    const clampedX = distance > maxDistance ? (x / distance) * maxDistance : x;
+    const clampedY = distance > maxDistance ? (y / distance) * maxDistance : y;
+    
+    document.getElementById("joystick-knob").style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+    input.joystick.x = clampedX / maxDistance;
+    input.joystick.y = clampedY / maxDistance;
+}
+
 
 // --- アニメーションループ ---
 function animate() {
@@ -373,7 +381,7 @@ function updatePlayer(deltaTime) {
   const moveDirection = new THREE.Vector3(
     input.joystick.x,
     0,
-    input.joystick.y
+    -input.joystick.y // Y軸を反転（奥がZ-）
   );
   if (moveDirection.length() > 0.01) {
     const moveQuaternion = new THREE.Quaternion();
