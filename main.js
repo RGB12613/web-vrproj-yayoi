@@ -154,6 +154,7 @@ function setupEventListeners() {
 
   // --- ジャイロはユーザーのアクションをきっかけにする
   ui.gyroButton.addEventListener('click', () => {
+    console.log("Gyro activation invoked");
     controls.connect();
     startButton.style.display = 'none';
   }, false);
