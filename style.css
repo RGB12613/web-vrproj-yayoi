@@ -2,6 +2,8 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: sans-serif;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 canvas {
@@ -90,6 +92,7 @@ canvas {
     padding: 15px 30px;
     font-size: 18px;
     cursor: pointer;
+    z-index: 10;
 }
 
 #orientation-warning, #loading-screen {
@@ -205,8 +208,6 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 15px; /* 項目間の隙間 */
-    touch-action: none;
-    overscroll-behavior: none;
 }
 
 .settings-item {
