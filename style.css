@@ -281,16 +281,6 @@ canvas {
     touch-action: auto;
 }
 
-/* ★★★ 改善案: UIの操作感を向上させる ★★★ */
-#settings-button,
-.vertical-button,
-.modal-button,
-.toggle-option,
-#close-modal-button,
-#gyro-button {
-    transition: background-color 0.2s, transform 0.1s;
-}
-
 #settings-button:active,
 .vertical-button:active,
 .modal-button:active,
