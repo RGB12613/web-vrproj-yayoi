@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -14,6 +15,7 @@
         }
     </script>
 </head>
+
 <body>
     <!-- ローディング画面 -->
     <div id="loading-screen">
@@ -28,13 +30,15 @@
 
     <!-- メインUI (最初は非表示) -->
     <div id="ui-container" class="hidden">
-        
+
         <!-- 左上のUI -->
         <div id="top-left-controls">
             <button id="settings-button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                    <path d="M12 1L12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 9.49533 4.25997 7.24348 6 5.87085L4.5 4.5C2.55569 6.24898 1.5 8.97451 1.5 12C1.5 17.799 6.20101 22.5 12 22.5C17.799 22.5 22.5 17.799 22.5 12C22.5 6.20101 17.799 1.5 12 1.5L12 4L10 2.5L12 1Z" />
-                    <path d="M12 7C14.7614 7 17 9.23858 17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7ZM12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9Z" />
+                    <path
+                        d="M12 1L12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 9.49533 4.25997 7.24348 6 5.87085L4.5 4.5C2.55569 6.24898 1.5 8.97451 1.5 12C1.5 17.799 6.20101 22.5 12 22.5C17.799 22.5 22.5 17.799 22.5 12C22.5 6.20101 17.799 1.5 12 1.5L12 4L10 2.5L12 1Z" />
+                    <path
+                        d="M12 7C14.7614 7 17 9.23858 17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7ZM12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9Z" />
                 </svg>
             </button>
         </div>
@@ -50,10 +54,9 @@
             </div>
         </div>
 
-        <!-- 右下のUI -->
-        <div id="version-display"></div>
     </div>
-    
+    <div id="version-display"></div>
+
     <!-- 縦画面警告 -->
     <div id="orientation-warning">画面を横にしてください</div>
 
@@ -69,7 +72,7 @@
                     <button id="reset-view-button" class="modal-button">視点をリセット</button>
                 </div>
                 <div class="settings-item">
-                     <button id="fullscreen-button" class="modal-button">フルスクリーン表示</button>
+                    <button id="fullscreen-button" class="modal-button">フルスクリーン表示</button>
                 </div>
                 <!-- ★★★ 変更点: トグルスイッチUIを追加 ★★★ -->
                 <div class="settings-item">
@@ -92,5 +95,5 @@
 
     <script type="module" src="main.js"></script>
 </body>
-</html>
 
+</html>
