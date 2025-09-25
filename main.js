@@ -3,7 +3,7 @@ import { DeviceOrientationControls } from "./DeviceOrientationControls.local.js"
 import { CONFIG } from "./config.js";
 import { SceneManager } from "./sceneManager.js";
 
-const VERSION = "10.1.5"; // バージョン番号を更新
+const VERSION = "10.2"; // バージョン番号を更新
 
 let scene, camera, renderer, clock;
 let floor;
@@ -117,6 +117,8 @@ function init() {
     (gltf) => {
       console.log("GLB model loaded successfully.");
       ui.loadingScreen.style.opacity = "0";
+      ui.loadingScreen.style.pointerEvents = "none";
+
       setTimeout(() => {
         ui.loadingScreen.classList.add("hidden");
         ui.uiContainer.classList.remove("hidden");
@@ -150,7 +152,6 @@ function setupEventListeners() {
   window.addEventListener("touchmove", onTouchMove, { passive: false });
   window.addEventListener("touchend", onTouchEnd, { passive: false });
   window.addEventListener("touchcancel", onTouchEnd, { passive: false });
-
 
   ui.gyroButton.addEventListener("click", () => {
     controls.connect();
@@ -194,10 +195,12 @@ function setupEventListeners() {
       e.target.classList.add("active");
     }
   });
-  
+
   const setupButtonEvents = (button, value) => {
-    const start = () => input.verticalMove = value;
-    const end = () => { if (input.verticalMove === value) input.verticalMove = 0; };
+    const start = () => (input.verticalMove = value);
+    const end = () => {
+      if (input.verticalMove === value) input.verticalMove = 0;
+    };
     button.addEventListener("touchstart", start);
     button.addEventListener("touchend", end);
     button.addEventListener("mousedown", start);
@@ -252,7 +255,10 @@ function onTouchStart(event) {
   for (let i = 0; i < touches.length; i++) {
     const touch = touches[i];
 
-    if (touch.target.closest("#joystick-container") && input.joystick.id === null) {
+    if (
+      touch.target.closest("#joystick-container") &&
+      input.joystick.id === null
+    ) {
       input.joystick.active = true;
       input.joystick.id = touch.identifier;
       updateJoystick(touch);
@@ -273,7 +279,6 @@ function onTouchStart(event) {
   }
 }
 
-
 function onTouchMove(event) {
   event.preventDefault();
   const touches = event.changedTouches;
@@ -289,7 +294,7 @@ function onTouchMove(event) {
     if (touch.identifier === input.touch.id) {
       const deltaX = touch.clientX - input.touch.startX;
       const deltaY = touch.clientY - input.touch.startY;
-      
+
       // ★★★ 修正点: 元の視点操作ロジックに戻しました ★★★
       const yawDirection = settings.invertYaw ? -1 : 1;
       const pitchDirection = settings.invertPitch ? -1 : 1;
@@ -319,7 +324,9 @@ function onTouchEnd(event) {
     if (touch.identifier === input.joystick.id) {
       input.joystick.active = false;
       input.joystick.id = null;
-      document.getElementById("joystick-knob").style.transform = `translate(0px, 0px)`;
+      document.getElementById(
+        "joystick-knob"
+      ).style.transform = `translate(0px, 0px)`;
       input.joystick.x = 0;
       input.joystick.y = 0;
       continue;
@@ -334,20 +341,22 @@ function onTouchEnd(event) {
 }
 
 function updateJoystick(touch) {
-    const container = document.getElementById("joystick-container");
-    const rect = container.getBoundingClientRect();
-    
-    const x = touch.clientX - rect.left - rect.width / 2;
-    const y = touch.clientY - rect.top - rect.height / 2;
-    const distance = Math.sqrt(x * x + y * y);
-    const maxDistance = rect.width / 2;
+  const container = document.getElementById("joystick-container");
+  const rect = container.getBoundingClientRect();
 
-    const clampedX = distance > maxDistance ? (x / distance) * maxDistance : x;
-    const clampedY = distance > maxDistance ? (y / distance) * maxDistance : y;
-    
-    document.getElementById("joystick-knob").style.transform = `translate(${clampedX}px, ${clampedY}px)`;
-    input.joystick.x = clampedX / maxDistance;
-    input.joystick.y = clampedY / maxDistance;
+  const x = touch.clientX - rect.left - rect.width / 2;
+  const y = touch.clientY - rect.top - rect.height / 2;
+  const distance = Math.sqrt(x * x + y * y);
+  const maxDistance = rect.width / 2;
+
+  const clampedX = distance > maxDistance ? (x / distance) * maxDistance : x;
+  const clampedY = distance > maxDistance ? (y / distance) * maxDistance : y;
+
+  document.getElementById(
+    "joystick-knob"
+  ).style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+  input.joystick.x = clampedX / maxDistance;
+  input.joystick.y = clampedY / maxDistance;
 }
 
 function animate() {
@@ -364,7 +373,6 @@ function animate() {
 }
 
 function updatePlayer(deltaTime) {
-  // ★★★ 修正点: 元の移動方向ロジックに戻しました ★★★
   const moveDirection = new THREE.Vector3(
     input.joystick.x,
     0,
