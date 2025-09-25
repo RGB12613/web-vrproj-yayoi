@@ -3,6 +3,49 @@ import { DeviceOrientationControls } from "./DeviceOrientationControls.local.js"
 import { CONFIG } from "./config.js";
 import { SceneManager } from "./sceneManager.js";
 
+// --- On-Screen Debug Console Logic ---
+function logToScreen(message, level = "log") {
+  const consoleEl = document.getElementById("debug-console");
+  if (!consoleEl) return;
+
+  const msgEl = document.createElement("div");
+  // 複数の引数を整形して表示
+  const formattedMessage = Array.from(arguments)
+    .map((arg) =>
+      typeof arg === "object" ? JSON.stringify(arg, null, 2) : arg
+    )
+    .join(" ");
+
+  msgEl.textContent = formattedMessage;
+  msgEl.className = `log-message log-${level}`;
+
+  consoleEl.appendChild(msgEl);
+  // 自動で一番下までスクロール
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+// 既存のconsole.logなどを乗っ取って、画面にも表示する
+(function () {
+  if (window.console && console.log) {
+    const oldLog = console.log;
+    console.log = function () {
+      logToScreen.apply(null, arguments);
+      oldLog.apply(console, arguments);
+    };
+    const oldWarn = console.warn;
+    console.warn = function () {
+      logToScreen.apply(null, ["[WARN]", ...arguments]);
+      oldWarn.apply(console, arguments);
+    };
+    const oldError = console.error;
+    console.error = function () {
+      logToScreen.apply(null, ["[ERROR]", ...arguments]);
+      oldError.apply(console, arguments);
+    };
+  }
+})();
+// --- End of On-Screen Debug Console Logic ---
+
 const VERSION = "__VERSION_PLACEHOLDER__";
 
 let scene, camera, renderer, clock;

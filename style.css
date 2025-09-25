@@ -289,3 +289,36 @@ canvas {
 #gyro-button:active {
     transform: scale(0.95);
 }
+
+/* --- On-Screen Debug Console --- */
+#debug-console {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 30vh; /* 画面の高さの30%まで */
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    font-family: monospace;
+    font-size: 12px;
+    overflow-y: auto; /* 内容が増えたらスクロール */
+    z-index: 9999; /* 常に最前面に表示 */
+    pointer-events: none; /* 下のUIを操作できるようにクリックを透過 */
+    box-sizing: border-box;
+}
+
+/* ログメッセージ一行ずつのスタイル */
+#debug-console .log-message {
+    padding: 4px 8px;
+    border-bottom: 1px solid #444;
+    white-space: pre-wrap; /* 長いメッセージでも折り返す */
+}
+/* エラーと警告で色を変える */
+#debug-console .log-warn {
+    background-color: #332b00;
+    color: #ffc;
+}
+#debug-console .log-error {
+    background-color: #330000;
+    color: #fcc;
+}
