@@ -149,17 +149,26 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
-  // --- ポインターイベントに一本化 ---
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★★★ ジャイロボタンのリスナーを完全に分離し、"click"イベントを使用 ★★★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  ui.gyroButton.addEventListener(
+    "click",
+    () => {
+      console.log("ジャイロ有効化ボタンがクリックされました。");
+      controls.connect();
+      ui.gyroButton.style.display = "none";
+    },
+    { once: true }
+  ); // 一度だけ実行されるようにする
+
+  // --- ジャイロボタン以外のポインターイベントを監視 ---
   window.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
 
-  ui.gyroButton.addEventListener("pointerdown", () => {
-    controls.connect();
-    ui.gyroButton.style.display = "none";
-  });
-
+  // --- 他のボタンのリスナー (gyroButtonのリスナーは上記に移動) ---
   ui.settingsButton.addEventListener("pointerdown", () =>
     ui.modalOverlay.classList.remove("hidden")
   );
@@ -198,7 +207,6 @@ function setupEventListeners() {
     }
   });
 
-  // 上下ボタンは mousedown/up も残してPCデバッグの利便性を維持
   const setupButtonEvents = (button, value) => {
     const start = () => (input.verticalMove = value);
     const end = () => {
@@ -206,9 +214,9 @@ function setupEventListeners() {
     };
     button.addEventListener("pointerdown", start);
     button.addEventListener("pointerup", end);
-    button.addEventListener("mousedown", start); // PC用
-    button.addEventListener("mouseup", end); // PC用
-    button.addEventListener("mouseleave", end); // PC用
+    button.addEventListener("mousedown", start);
+    button.addEventListener("mouseup", end);
+    button.addEventListener("mouseleave", end);
   };
   setupButtonEvents(ui.upButton, 1);
   setupButtonEvents(ui.downButton, -1);
