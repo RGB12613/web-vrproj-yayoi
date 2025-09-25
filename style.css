@@ -87,13 +87,31 @@ canvas {
 
 #gyro-button {
     position: fixed;
-    top: 50%;
+    /* ★★★ 配置を画面上部中央に変更 ★★★ */
+    top: 30px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 15px 30px;
-    font-size: 18px;
+    transform: translateX(-50%);
+
+    /* ★★★ デザインを角丸四角形に変更 & 装飾を追加 ★★★ */
+    background-color: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    /* ←角を丸める */
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
+    /* ガラスのようなすりガラス効果 */
+    -webkit-backdrop-filter: blur(8px);
+    /* Safari向け */
+
+    /* ★★★ 操作感を向上 ★★★ */
     cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
     z-index: 201;
+    /* 念のため最前面に */
 }
 
 #orientation-warning,

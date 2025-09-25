@@ -152,11 +152,11 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
-  // --- ジャイロはユーザーのアクションをきっかけにする
+  // --- ジャイロは”確実に”ユーザーのアクションをきっかけにする
   ui.gyroButton.addEventListener('pointerup', () => {
     console.log("Gyro activation invoked");
     controls.connect();
-    startButton.style.display = 'none';
+    ui.gyroButton.style.display = 'none';
   }, false);
 
   // --- ポインターイベントに一本化 ---
