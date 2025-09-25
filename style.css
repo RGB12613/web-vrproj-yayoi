@@ -3,7 +3,7 @@ body {
     overflow: hidden;
     font-family: sans-serif;
     touch-action: none;
-    overscroll-behavior: none;
+    /* overscroll-behavior: none; */
 }
 
 canvas {
