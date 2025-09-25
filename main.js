@@ -149,20 +149,22 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
+  // --- ジャイロはユーザーのアクションをきっかけにする
+  gyroButton.addEventListener('click', () => {
+    controls.connect();
+    startButton.style.display = 'none';
+  }, false);
+
   // --- ポインターイベントに一本化 ---
   window.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
 
-  // ★★★ gyroButtonの専用リスナーをここから削除 ★★★
-
-
   // --- 他のボタンのリスナー ---
   ui.settingsButton.addEventListener("pointerdown", () =>
     ui.modalOverlay.classList.remove("hidden")
   );
-  // ... (以下、この関数の残りの部分は変更ありません) ...
   ui.closeModalButton.addEventListener("pointerdown", () =>
     ui.modalOverlay.classList.add("hidden")
   );
@@ -247,16 +249,6 @@ function onWindowResize() {
 
 function onPointerDown(event) {
   const target = event.target;
-
-  // ★★★ 最優先でジャイロボタンの操作をチェック ★★★
-  if (target.closest("#gyro-button")) {
-    console.log("ジャイロ有効化ボタンが押されました！");
-    controls.connect();
-    ui.gyroButton.style.display = "none";
-    return; // ジャイロボタンの処理はここで完了
-  }
-
-  // --- 以下は既存のロジック ---
 
   // ジョイスティック操作か？
   if (
