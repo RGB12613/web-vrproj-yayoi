@@ -2,7 +2,7 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: sans-serif;
-    /* touch-action: none; */
+    touch-action: none;
     overscroll-behavior: none;
 }
 
@@ -263,5 +263,17 @@ canvas {
 
 .hidden {
     display: none !important;
+}
+
+/* --- タッチ操作の有効化 --- */
+/* body全体で無効化したタッチ操作を、ボタン類に限って有効に戻す */
+#gyro-button,
+#settings-button,
+.vertical-button,
+.modal-button,
+#close-modal-button,
+.toggle-option,
+#joystick-container {
+  touch-action: auto;
 }
 
