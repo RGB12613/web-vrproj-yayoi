@@ -60,6 +60,9 @@ const input = {
 
 // --- 初期化処理 ---
 function init() {
+  // バージョン表記
+  console.log(`${VERSION}`);
+
   clock = new THREE.Clock();
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
