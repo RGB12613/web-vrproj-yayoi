@@ -91,7 +91,23 @@
             </div>
         </div>
     </div>
-    <div id="debug-console"></div>
+    <div id="debug-console">
+        <div id="debug-header">DEBUG CONSOLE</div>
+        <div id="debug-log-container"></div>
+    </div>
+
+    <script>
+        // URLに "?debug" が含まれているかチェック
+        if (new URLSearchParams(window.location.search).has('debug')) {
+            // bodyにクラスを追加してCSSで表示を制御
+            document.body.classList.add('debug-mode');
+
+            // debug.jsを動的に読み込む
+            const script = document.createElement('script');
+            script.src = './debug.js';
+            document.body.appendChild(script);
+        }
+    </script>
 
     <script type="module" src="main.js"></script>
 </body>
