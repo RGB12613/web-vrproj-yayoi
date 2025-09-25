@@ -149,29 +149,20 @@ function setupEventListeners() {
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("orientationchange", checkScreenOrientation);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★★★ ジャイロボタンのリスナーを完全に分離し、"click"イベントを使用 ★★★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  ui.gyroButton.addEventListener(
-    "click",
-    () => {
-      console.log("ジャイロ有効化ボタンがクリックされました。");
-      controls.connect();
-      ui.gyroButton.style.display = "none";
-    },
-    { once: true }
-  ); // 一度だけ実行されるようにする
-
-  // --- ジャイロボタン以外のポインターイベントを監視 ---
+  // --- ポインターイベントに一本化 ---
   window.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
 
-  // --- 他のボタンのリスナー (gyroButtonのリスナーは上記に移動) ---
+  // ★★★ gyroButtonの専用リスナーをここから削除 ★★★
+
+
+  // --- 他のボタンのリスナー ---
   ui.settingsButton.addEventListener("pointerdown", () =>
     ui.modalOverlay.classList.remove("hidden")
   );
+  // ... (以下、この関数の残りの部分は変更ありません) ...
   ui.closeModalButton.addEventListener("pointerdown", () =>
     ui.modalOverlay.classList.add("hidden")
   );
@@ -180,17 +171,14 @@ function setupEventListeners() {
       ui.modalOverlay.classList.add("hidden");
     }
   });
-
   ui.resetViewButton.addEventListener("pointerdown", () => {
     if (controls) {
       controls.resetView();
     }
     ui.modalOverlay.classList.add("hidden");
   });
-
   ui.fullscreenButton.addEventListener("pointerdown", toggleFullscreen);
   document.addEventListener("fullscreenchange", updateFullscreenButton);
-
   ui.toggleYaw.addEventListener("pointerdown", (e) => {
     if (e.target.classList.contains("toggle-option")) {
       settings.invertYaw = e.target.dataset.value === "reverse";
@@ -198,7 +186,6 @@ function setupEventListeners() {
       e.target.classList.add("active");
     }
   });
-
   ui.togglePitch.addEventListener("pointerdown", (e) => {
     if (e.target.classList.contains("toggle-option")) {
       settings.invertPitch = e.target.dataset.value === "reverse";
@@ -206,7 +193,6 @@ function setupEventListeners() {
       e.target.classList.add("active");
     }
   });
-
   const setupButtonEvents = (button, value) => {
     const start = () => (input.verticalMove = value);
     const end = () => {
@@ -262,6 +248,16 @@ function onWindowResize() {
 function onPointerDown(event) {
   const target = event.target;
 
+  // ★★★ 最優先でジャイロボタンの操作をチェック ★★★
+  if (target.closest("#gyro-button")) {
+    console.log("ジャイロ有効化ボタンが押されました！");
+    controls.connect();
+    ui.gyroButton.style.display = "none";
+    return; // ジャイロボタンの処理はここで完了
+  }
+
+  // --- 以下は既存のロジック ---
+
   // ジョイスティック操作か？
   if (
     target.closest("#joystick-container") &&
@@ -270,7 +266,6 @@ function onPointerDown(event) {
     event.preventDefault();
     input.joystick.active = true;
     input.joystick.pointerId = event.pointerId;
-    // ポインターイベントをジョイスティック要素に限定
     target.closest("#joystick-container").setPointerCapture(event.pointerId);
     updateJoystick(event);
     return;
@@ -278,7 +273,6 @@ function onPointerDown(event) {
 
   // 他のUI要素は自身のリスナーに任せるので、ここでは何もしない
   if (
-    target.closest("#gyro-button") ||
     target.closest("#top-left-controls") ||
     target.closest("#vertical-controls") ||
     target.closest("#settings-modal-overlay")
@@ -293,7 +287,6 @@ function onPointerDown(event) {
     input.view.pointerId = event.pointerId;
     input.view.startX = event.clientX;
     input.view.startY = event.clientY;
-    // ポインターイベントをbody要素に限定
     document.body.setPointerCapture(event.pointerId);
   }
 }
