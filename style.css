@@ -326,6 +326,15 @@ canvas {
     /* 子要素の角丸を維持 */
 }
 
+#debug-stats {
+    background-color: #222;
+    padding: 4px 8px;
+    font-family: monospace;
+    color: #0f0;
+    /* 見やすいように緑色に */
+    border-bottom: 1px solid #444;
+}
+
 /* ★★★ bodyにdebug-modeクラスが付いたときだけ表示 ★★★ */
 body.debug-mode #debug-console {
     display: flex;
